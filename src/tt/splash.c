@@ -5,7 +5,6 @@
 #include "gfx.h"
 #include "tt.h"
 #include "bios.h"
-#include "dos.h"
 #include "system.h"
 #include "../version.h"
 
@@ -19,7 +18,7 @@ static void SetInk(u8 fg)
 	g_FORCLR = fg;
 	g_BAKCLR = SPL_BLACK;
 	g_BDRCLR = SPL_BLACK;
-	DOS_InterSlotCall(g_MNROM, R_CHGCLR);
+	BIOS_InterSlotCall(g_MNROM, R_CHGCLR);
 }
 
 static u8 s_PutC;
@@ -60,12 +59,17 @@ static void PutCentered(u8 row, const c8* s)
 	u8 len = 0;
 	const c8* p = s;
 	u8 col;
+	u8 w = g_LINLEN;
 
 	while (*p++)
 		len++;
-	if (len > 40)
-		len = 40;
-	col = (u8)((40 - len) / 2 + 1);
+	/* INITXT can leave LINLEN at the machine default (often 37). */
+	if ((w < 32) || (w > 80))
+		w = 40;
+	if (len > w)
+		len = w;
+	/* 1-based CSRX; spare column on odd widths goes to the left. */
+	col = (u8)((w - len + 1) / 2 + 1);
 	Locate(row, col);
 	PutStr(s);
 }
@@ -82,11 +86,12 @@ void Splash_Show(u8 unapi_miss)
 	const c8* v;
 	u8 i;
 
-	DOS_InterSlotCall(g_MNROM, R_INITXT);
+	g_LINL40 = 40;
+	BIOS_InterSlotCall(g_MNROM, R_INITXT);
 	/* SCREEN 0 has one foreground for the whole screen (R#7). On UNAPI miss
 	 * use medium red for every line; otherwise green. */
 	SetInk(unapi_miss ? SPL_RED : SPL_GREEN);
-	DOS_InterSlotCall(g_MNROM, R_ENASCR);
+	BIOS_InterSlotCall(g_MNROM, R_ENASCR);
 
 	PutCentered(10, "NOS Teletekst");
 

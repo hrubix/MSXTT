@@ -1,12 +1,12 @@
 # MSXTT
 
-Combined NOS Teletekst viewer for MSX. One Nextor `MSXTT.COM` detects the machine at boot: **MSX1 → SCREEN 2**, anything else (MSX2, MSX2+, turbo R) → **SCREEN 5**. Fetches `/json/NNN` over UNAPI HTTP using `TT.CFG` `proxy-url`. Version **0.9.208**. Author: rubikonlab@proton.me (`made by rubikonlab.com`).
+Combined NOS Teletekst viewer for MSX. One Nextor `MSXTT.COM` detects the machine at boot: **MSX1 → SCREEN 2**, anything else (MSX2, MSX2+, turbo R) → **SCREEN 5**. DOS2 fetches `/json/NNN` over UNAPI HTTP using `TT.CFG` `proxy-url`. Cartridge `MSXTT.ROM` (16 KB at 8000h) fetches **HTTPS** directly from `teletekst-data.nos.nl`. Version **0.9.214**. Author: rubikonlab@proton.me (`made by rubikonlab.com`).
 
 ## Keys
 
 - `0`–`9` (row or keypad): type a 3-digit page; it loads on the third digit
 - `BS`, `DEL`: erase last digit
-- `ESC`, `STOP`: abort a fetch, else clear typed digits, else quit to DOS
+- `ESC`, `STOP`: hard reboot (warm reset)
 - `F1`–`F4`: fastext red, green, yellow, cyan
 - `F5`: reload current page
 - `HOME`: page 100
@@ -45,3 +45,9 @@ build.bat
 ```
 
 Writes `emul/dos2/msxtt.com` and `emul/dsk/msxtt.dsk` (`AUTOEXEC.BAT`, `UNAPI.COM`, `MSXTT.COM`, `TT.CFG`). Refresh is 20 seconds (not configurable). Host proxy: `tools/run-tt-proxy.bat`.
+
+```
+build-msxtt-rom.bat
+```
+
+Writes `build/MSXTT.ROM` and `emul/rom/MSXTT.ROM` (16 KB page-2 cart, direct HTTPS to NOS). Run: `run-msxtt-rom.bat`.

@@ -142,6 +142,15 @@ static i8 NextAction(void)
 	return -1;
 }
 
+/* Warm reset — same as the machine RESET button. */
+static void HardReboot(void)
+{
+	DisableInterrupt();
+	__asm
+		jp	0x0000
+	__endasm;
+}
+
 static bool DigitPending(void)
 {
 	u8 i;
@@ -161,14 +170,11 @@ static bool DigitPending(void)
 bool TT_PollAbort(void)
 {
 	ScanActions();
+	if (g_ActEdge & ACT_ABORT_MASK)
+		HardReboot();
 	if (g_SilentFetch)
 		return (g_ActEdge || DigitPending()) ? TRUE : FALSE;
 	DigitEdge();
-	if (g_ActEdge & ACT_ABORT_MASK)
-	{
-		g_ActEdge = 0;
-		return TRUE;
-	}
 	g_ActEdge = 0;
 	return FALSE;
 }
@@ -345,14 +351,8 @@ void main(void)
 		{
 			if ((a == ACT_ESC) || (a == ACT_STOP))
 			{
-				if (g_EntryN)
-				{
-					g_EntryN = 0;
-					ShowCurrent();
-					continue;
-				}
-				Gfx_RestoreDOS();
-				return;
+				HardReboot();
+				continue;
 			}
 			if ((a == ACT_BS) || (a == ACT_DEL))
 			{

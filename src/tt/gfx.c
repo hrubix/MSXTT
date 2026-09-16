@@ -4,7 +4,6 @@
 #include "gfx.h"
 #include "tt.h"
 #include "tt_font.h"
-#include "dos.h"
 #include "bios.h"
 
 u8 g_IsMsx1;
@@ -67,7 +66,7 @@ void Gfx_RestoreDOS(void)
 		Scr2_RestoreDOS();
 	else
 		Scr5_RestoreDOS();
-	DOS_InterSlotCall(g_MNROM, R_CHGCLR);
+	BIOS_InterSlotCall(g_MNROM, R_CHGCLR);
 }
 
 void Gfx_DrawPage(void)

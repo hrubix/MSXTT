@@ -65,7 +65,7 @@ extern TT_Link g_Fast[4];
 
 void TT_AfterUnapi(void);
 #if TT_ROM
-void TT_Dbg(u8 code);
+#define TT_Dbg(code) ((void)(code))
 #else
 #define TT_Dbg(code) ((void)0)
 #endif

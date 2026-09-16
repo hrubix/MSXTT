@@ -5,7 +5,6 @@
 #include "tt.h"
 #include "bios.h"
 #include "color.h"
-#include "dos.h"
 #include "tt_font.h"
 
 #define TT_OV_COL    36
@@ -375,7 +374,7 @@ void Scr5_RestoreDOS(void)
 
 	for (i = 0; i < 16; ++i)
 		VDP_SetPaletteEntry(i, g_DOSPalette[i]);
-	DOS_InterSlotCall(g_MNROM, R_INITXT);
-	DOS_InterSlotCall(g_MNROM, R_KILBUF);
+	BIOS_InterSlotCall(g_MNROM, R_INITXT);
+	BIOS_InterSlotCall(g_MNROM, R_KILBUF);
 	EnableInterrupt();
 }

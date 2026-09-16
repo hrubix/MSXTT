@@ -4,7 +4,6 @@
 #include "gfx.h"
 #include "tt.h"
 #include "bios.h"
-#include "dos.h"
 
 #define TT_OV_COL 36
 
@@ -218,7 +217,7 @@ void Scr2_InitVideo(void)
 
 void Scr2_RestoreDOS(void)
 {
-	DOS_InterSlotCall(g_MNROM, R_INITXT);
-	DOS_InterSlotCall(g_MNROM, R_KILBUF);
+	BIOS_InterSlotCall(g_MNROM, R_INITXT);
+	BIOS_InterSlotCall(g_MNROM, R_KILBUF);
 	EnableInterrupt();
 }
