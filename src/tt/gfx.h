@@ -9,6 +9,7 @@ extern u8 g_IsMsx1;
 extern u8 g_Mosaic[64 * 8];
 
 void Gfx_InitMosaics(void);
+const u8* Gfx_CellPattern(u8 glyph);
 void Gfx_InitVideo(void);
 void Gfx_RestoreDOS(void);
 void Gfx_DrawPage(void);

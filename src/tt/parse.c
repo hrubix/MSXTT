@@ -86,42 +86,26 @@ static bool NameIs(const c8* a, const c8* b)
 	return (*a == 0) && (*b == 0);
 }
 
-/* HTML Latin-1 letter names; codes stay 0xC0–0xFF so 0 is “not found”. */
+/* HTML Latin-1 names used by NOS (mostly UTF-8 / &#x..; otherwise). */
 static const c8 g_LatEnt[] =
-	"Agrave\0Aacute\0Acirc\0Atilde\0Auml\0Aring\0AElig\0Ccedil\0"
-	"Egrave\0Eacute\0Ecirc\0Euml\0"
-	"Igrave\0Iacute\0Icirc\0Iuml\0"
-	"ETH\0Ntilde\0"
-	"Ograve\0Oacute\0Ocirc\0Otilde\0Ouml\0"
-	"times\0Oslash\0"
-	"Ugrave\0Uacute\0Ucirc\0Uuml\0"
-	"Yacute\0THORN\0szlig\0"
-	"agrave\0aacute\0acirc\0atilde\0auml\0aring\0aelig\0ccedil\0"
 	"egrave\0eacute\0ecirc\0euml\0"
-	"igrave\0iacute\0icirc\0iuml\0"
-	"eth\0ntilde\0"
-	"ograve\0oacute\0ocirc\0otilde\0ouml\0"
-	"divide\0oslash\0"
-	"ugrave\0uacute\0ucirc\0uuml\0"
-	"yacute\0thorn\0yuml\0";
+	"agrave\0aacute\0auml\0"
+	"igrave\0iacute\0iuml\0"
+	"ograve\0oacute\0ouml\0"
+	"ugrave\0uacute\0uuml\0"
+	"ccedil\0ntilde\0"
+	"Egrave\0Eacute\0Euml\0"
+	"Auml\0Iuml\0Ouml\0Uuml\0Ccedil\0";
 
 static const u8 g_LatCode[] = {
-	0xC0, 0xC1, 0xC2, 0xC3, 0xC4, 0xC5, 0xC6, 0xC7,
-	0xC8, 0xC9, 0xCA, 0xCB,
-	0xCC, 0xCD, 0xCE, 0xCF,
-	0xD0, 0xD1,
-	0xD2, 0xD3, 0xD4, 0xD5, 0xD6,
-	0xD7, 0xD8,
-	0xD9, 0xDA, 0xDB, 0xDC,
-	0xDD, 0xDE, 0xDF,
-	0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE6, 0xE7,
 	0xE8, 0xE9, 0xEA, 0xEB,
-	0xEC, 0xED, 0xEE, 0xEF,
-	0xF0, 0xF1,
-	0xF2, 0xF3, 0xF4, 0xF5, 0xF6,
-	0xF7, 0xF8,
-	0xF9, 0xFA, 0xFB, 0xFC,
-	0xFD, 0xFE, 0xFF
+	0xE0, 0xE1, 0xE4,
+	0xEC, 0xED, 0xEF,
+	0xF2, 0xF3, 0xF6,
+	0xF9, 0xFA, 0xFC,
+	0xE7, 0xF1,
+	0xC8, 0xC9, 0xCB,
+	0xC4, 0xCF, 0xD6, 0xDC, 0xC7
 };
 
 static u8 LookupLatin1Ent(void)
@@ -210,45 +194,42 @@ static bool NameEq(const c8* a, const c8* b)
 	return TRUE;
 }
 
-static bool TokenEq(const c8* t, u8 n, const c8* s)
-{
-	u8 k = 0;
-
-	while (s[k])
-	{
-		c8 ca;
-		c8 cb;
-		if (k >= n)
-			return FALSE;
-		ca = t[k];
-		cb = s[k];
-		if ((ca >= 'A') && (ca <= 'Z'))
-			ca = (c8)(ca + 32);
-		if (ca != cb)
-			return FALSE;
-		k++;
-	}
-	return k == n;
-}
+/* NOS class tokens are lowercase: black..white and bg-*. */
+static const c8 g_ColName[] =
+	"black\0red\0green\0yellow\0blue\0magenta\0cyan\0white\0";
 
 static void ParseClassToken(const c8* t, u8 n)
 {
-	if (TokenEq(t, n, "black")) { g_Fg = 0; return; }
-	if (TokenEq(t, n, "red")) { g_Fg = 1; return; }
-	if (TokenEq(t, n, "green")) { g_Fg = 2; return; }
-	if (TokenEq(t, n, "yellow")) { g_Fg = 3; return; }
-	if (TokenEq(t, n, "blue")) { g_Fg = 4; return; }
-	if (TokenEq(t, n, "magenta")) { g_Fg = 5; return; }
-	if (TokenEq(t, n, "cyan")) { g_Fg = 6; return; }
-	if (TokenEq(t, n, "white")) { g_Fg = 7; return; }
-	if (TokenEq(t, n, "bg-black")) { g_Bg = 0; return; }
-	if (TokenEq(t, n, "bg-red")) { g_Bg = 1; return; }
-	if (TokenEq(t, n, "bg-green")) { g_Bg = 2; return; }
-	if (TokenEq(t, n, "bg-yellow")) { g_Bg = 3; return; }
-	if (TokenEq(t, n, "bg-blue")) { g_Bg = 4; return; }
-	if (TokenEq(t, n, "bg-magenta")) { g_Bg = 5; return; }
-	if (TokenEq(t, n, "bg-cyan")) { g_Bg = 6; return; }
-	if (TokenEq(t, n, "bg-white")) { g_Bg = 7; return; }
+	u8 bg = 0;
+	u8 i;
+	const c8* p;
+
+	if ((n >= 3) && (t[0] == 'b') && (t[1] == 'g') && (t[2] == '-'))
+	{
+		bg = 1;
+		t += 3;
+		n = (u8)(n - 3);
+	}
+	p = g_ColName;
+	i = 0;
+	while (*p)
+	{
+		u8 k = 0;
+		while (p[k] && (k < n) && (p[k] == t[k]))
+			k++;
+		if (!p[k] && (k == n))
+		{
+			if (bg)
+				g_Bg = i;
+			else
+				g_Fg = i;
+			return;
+		}
+		while (*p)
+			p++;
+		p++;
+		i++;
+	}
 }
 
 static void ApplyClasses(const c8* s)
@@ -686,16 +667,7 @@ bool TT_ParseHttpJson(const c8* json, u16 len)
 						break;
 					v = (u16)((v << 4) | h);
 				}
-				if ((v >= 0xF000) && (v <= 0xF07F))
-					EmitGlyph(MosaicGlyph((u8)(v & 0xFF)));
-				else if (v == 0xA0)
-					EmitChar(' ');
-				else if (v < 128)
-					Feed((u8)v);
-				else if ((v >= 0xC0) && (v <= 0xFF))
-					EmitGlyph((u8)v);
-				else
-					EmitChar('?');
+				EmitCodepoint(v);
 			}
 			else
 				Feed(c);

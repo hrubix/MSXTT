@@ -368,8 +368,6 @@ static bool OpenTcp(int* conn)
 	int err;
 	u8 att;
 	u8 max_att;
-	u16 wait_ticks;
-	u8 loopback;
 
 	Mem_Set(0, &tcp, sizeof(tcp));
 	Mem_Copy(g_Ip, tcp.dest_ip, 4);
@@ -396,24 +394,15 @@ static bool OpenTcp(int* conn)
 	}
 #endif
 
-	loopback = ((u8)g_Ip[0] == 127) ? 1 : 0;
-	max_att = loopback ? 8 : 1;
+	/* unapinet loopback: a few short retries while the proxy wakes up. */
+	max_att = ((u8)g_Ip[0] == 127) ? 4 : 1;
 	for (att = 0; att < max_att; att++)
 	{
 		if (Cancelled())
 			return FALSE;
-		wait_ticks = TT_TIMEOUT_TICKS;
-		if (loopback && (att + 1 < max_att))
-			wait_ticks = 40;
 		*conn = 0;
 		err = tcpip_tcp_open(&tcp, conn);
 		TT_AfterUnapi();
-		if ((err == ERR_NO_NETWORK) && (att == 0))
-		{
-			TT_WaitTick();
-			err = tcpip_tcp_open(&tcp, conn);
-			TT_AfterUnapi();
-		}
 		if (err != ERR_OK)
 		{
 			if (att + 1 >= max_att)
@@ -421,11 +410,10 @@ static bool OpenTcp(int* conn)
 			TT_WaitTick();
 			continue;
 		}
-		if (TcpEstablished(*conn, wait_ticks))
+		if (TcpEstablished(*conn, (max_att > 1 && att + 1 < max_att) ? 40 : TT_TIMEOUT_TICKS))
 			return TRUE;
 		tcpip_tcp_abort(*conn);
 		TT_AfterUnapi();
-		TT_WaitTick();
 		TT_WaitTick();
 	}
 	return FALSE;
@@ -623,6 +611,7 @@ u8 TT_FetchPage(u16 page, u8 sub)
 	u16 st;
 	u16 off;
 	u16 body;
+	u16 n;
 
 	if (page > 999)
 		return TT_ERR_HTTP;
@@ -636,9 +625,13 @@ u8 TT_FetchPage(u16 page, u8 sub)
 	if (!OpenTcp(&conn))
 		return g_Cancel ? TT_ERR_CANCEL : TT_ERR_TCP;
 
-	d0 = (u8)(page / 100);
-	d1 = (u8)((page / 10) % 10);
-	d2 = (u8)(page % 10);
+	/* Avoid SDCC div helpers for three digits. */
+	n = page;
+	d0 = 0;
+	while (n >= 100) { n = (u16)(n - 100); d0++; }
+	d1 = 0;
+	while (n >= 10) { n = (u16)(n - 10); d1++; }
+	d2 = (u8)n;
 
 	p = g_Request;
 	Mem_Copy("GET /json/", p, 10);
@@ -651,8 +644,8 @@ u8 TT_FetchPage(u16 page, u8 sub)
 	{
 		*p++ = '-';
 		if (sub >= 10)
-			*p++ = (c8)('0' + (sub / 10));
-		*p++ = (c8)('0' + (sub % 10));
+			*p++ = (c8)('0' + (u8)(sub / 10));
+		*p++ = (c8)('0' + (u8)(sub % 10));
 	}
 	Mem_Copy(" HTTP/1.0\r\nHost: ", p, 17);
 	p += 17;

@@ -73,7 +73,7 @@
 #define BIOS_USE_PSG				TRUE	// Give access to Main-ROM routines related to PSG
 #endif
 #define BIOS_USE_SUBROM				TRUE	// Allow use of Sub-ROM routines (MSX2/2+/turbo R)
-#if (TARGET == TARGET_ROM_16K_P2)
+#if (TT_SLIM || (TARGET == TARGET_ROM_16K_P2))
 #define BIOS_USE_DISKROM			FALSE
 #else
 #define BIOS_USE_DISKROM			TRUE	// Allow use of Disk-ROM routines
@@ -116,7 +116,9 @@
 #define VDP_USE_VALIDATOR			TRUE
 #define VDP_USE_DEFAULT_PALETTE		FALSE
 #define VDP_USE_MSX1_PALETTE		FALSE
-#define VDP_USE_DEFAULT_SETTINGS	TRUE
+#define VDP_USE_DEFAULT_SETTINGS	FALSE	/* Scr2/Scr5 set display/sprites/lines */
+#define VDP_USE_GM2_HELPER			FALSE	/* no LoadPattern/WriteLayout_GM2 */
+#define VDP_USE_EXTRA_API			FALSE	/* ClearVRAM/GetVersion/SetAdjustOffset */
 #define VDP_USE_16X16_SPRITE		FALSE
 #define VDP_USE_RESTORE_S0			TRUE
 #define VDP_USE_PALETTE16			FALSE
@@ -142,6 +144,8 @@
 #define VDP_USE_DEFAULT_PALETTE		FALSE	// Add data for default MSX2 palette
 #define VDP_USE_MSX1_PALETTE		FALSE	// Add data for default MSX1 palette
 #define VDP_USE_DEFAULT_SETTINGS	TRUE	// Auto-initialization of common VDP feature
+#define VDP_USE_GM2_HELPER			TRUE	// LoadPattern/LoadColor/WriteLayout/FillLayout_GM2
+#define VDP_USE_EXTRA_API			TRUE	// ClearVRAM/GetVersion/SetAdjustOffset
 #define VDP_USE_16X16_SPRITE		TRUE	// Use 16x16 sprites mode
 #define VDP_USE_RESTORE_S0			TRUE	// Do restore of status register pointer to S#0 (needed onlt for default BIOS ISR)
 #define VDP_USE_PALETTE16			FALSE	// Use 16 entries palette (use only 15 entries otherwise)
@@ -222,12 +226,21 @@
 // MSX-DOS MODULE
 //-----------------------------------------------------------------------------
 
+#if TT_SLIM
+#define DOS_USE_FCB					FALSE
+#define DOS_USE_HANDLE				TRUE	/* TT.CFG via DOS_OpenHandle */
+#define DOS_USE_UTILITIES			FALSE
+#define DOS_USE_VALIDATOR			TRUE
+#define DOS_USE_ERROR_HANDLER		FALSE
+#define DOS_USE_BIOSCALL			TRUE	/* DOS_InterSlotCall for INITXT */
+#else
 #define DOS_USE_FCB					TRUE	// Add support for file managment features through FCB structure
 #define DOS_USE_HANDLE				TRUE	// Add support for file managment features through file handle
 #define DOS_USE_UTILITIES			TRUE	// Add support for file managment features through filename
 #define DOS_USE_VALIDATOR			TRUE	// Add support for last error backup and return value validation
 #define DOS_USE_ERROR_HANDLER		TRUE	// Add support for MSX-DOS 1 error handler callback
 #define DOS_USE_BIOSCALL			TRUE	// Add support for call to BIOS routines
+#endif
 
 //-----------------------------------------------------------------------------
 // CLOCK MODULE

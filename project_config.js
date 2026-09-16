@@ -6,7 +6,8 @@ DoRun = false;
 ProjName = "msxtt";
 ProjModules = [
 	"src/tt/main", "src/tt/net", "src/tt/parse",
-	"src/tt/splash", "src/tt/gfx", "src/tt/gfx_scr5", "src/tt/gfx_scr2"
+	"src/tt/splash", "src/tt/gfx", "src/tt/gfx_scr5", "src/tt/gfx_scr2",
+	"src/tt/tt_font"
 ];
 LibModules = [ "system", "bios", "memory", "vdp", "keyboard", "dos" ];
 AddSources = [
@@ -19,6 +20,7 @@ Target = "DOS2";
 CheckVersion = false;
 CustomISR = "NONE";
 DOSParseArg = false;
+Optim = "Size";
 
 DiskFiles = [ "disk/AUTOEXEC.BAT", "disk/TT.CFG", "disk/UNAPI.COM" ];
 

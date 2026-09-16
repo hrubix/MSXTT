@@ -303,36 +303,6 @@ erow_pitch:
 	__endasm;
 }
 
-static const u8* CellPattern(u8 glyph, u8* mosaic)
-{
-	if (glyph >= 0xC0)
-		return g_Latin1[(u8)(glyph - 0xC0)];
-	if (glyph >= 0x80)
-	{
-		u8 i, row, left, right, pat, bits;
-		const u8 h[3] = { 3, 3, 2 };
-		const u8 lb[3] = { 0, 2, 4 };
-		const u8 rb[3] = { 1, 3, 5 };
-		u8* dst = mosaic;
-
-		bits = (u8)(glyph & 0x3F);
-		for (row = 0; row < 3; ++row)
-		{
-			left = (u8)((bits >> lb[row]) & 1);
-			right = (u8)((bits >> rb[row]) & 1);
-			pat = 0;
-			if (left)
-				pat |= 0xE0;
-			if (right)
-				pat |= 0x1C;
-			for (i = 0; i < h[row]; ++i)
-				*dst++ = pat;
-		}
-		return mosaic;
-	}
-	return g_TTFont[glyph];
-}
-
 static void DrawPattern(u16 x, u8 y, const u8* pat, u8 fg, u8 bg)
 {
 	ExpandPattern(g_Cell, 3, pat, fg, bg);
@@ -341,13 +311,12 @@ static void DrawPattern(u16 x, u8 y, const u8* pat, u8 fg, u8 bg)
 
 static void DrawOne(u8 col, u8 row, u8 glyph, u8 attr)
 {
-	u8 mosaic[8];
 	u8 fg = (u8)(attr >> 4);
 	u8 bg = (u8)(attr & 0x0F);
 	u16 x = (u16)(TT_ORIGIN_X + col * TT_CELL_W);
 	u8 y = (u8)(OriginY() + row * TT_CELL_H);
 
-	DrawPattern(x, y, CellPattern(glyph, mosaic), fg, bg);
+	DrawPattern(x, y, Gfx_CellPattern(glyph), fg, bg);
 }
 
 void Scr5_DrawPage(void)

@@ -5,7 +5,6 @@
 #include "tt.h"
 #include "bios.h"
 #include "dos.h"
-#include "tt_font.h"
 
 #define TT_OV_COL 36
 
@@ -25,15 +24,6 @@ static u8 MapAttr(u8 nos_attr)
 	u8 fg = g_NosToTms[(u8)((nos_attr >> 4) & 7)];
 	u8 bg = g_NosToTms[(u8)(nos_attr & 7)];
 	return (u8)((fg << 4) | bg);
-}
-
-static const u8* CellPattern(u8 glyph)
-{
-	if (glyph >= 0xC0)
-		return g_Latin1[(u8)(glyph - 0xC0)];
-	if (glyph >= 0x80)
-		return g_Mosaic + ((u16)(glyph & 0x3F) * 8);
-	return g_TTFont[glyph];
 }
 
 u8 g_MapAttr[256];
@@ -66,7 +56,7 @@ static void Scr2_InitLuts(void)
 	for (i = 0; i < 256; ++i)
 	{
 		g_MapAttr[i] = MapAttr((u8)i);
-		g_GlyphPat[i] = CellPattern((u8)i);
+		g_GlyphPat[i] = Gfx_CellPattern((u8)i);
 	}
 
 	for (c = 0; c < TT_COLS; ++c)

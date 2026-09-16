@@ -3,6 +3,7 @@
  */
 #include "gfx.h"
 #include "tt.h"
+#include "tt_font.h"
 #include "dos.h"
 #include "bios.h"
 
@@ -36,6 +37,15 @@ void Gfx_InitMosaics(void)
 
 	for (bits = 0; bits < 64; ++bits)
 		MosaicPattern(bits, g_Mosaic + ((u16)bits * 8));
+}
+
+const u8* Gfx_CellPattern(u8 glyph)
+{
+	if (glyph >= 0xC0)
+		return g_Latin1[(u8)(glyph - 0xC0)];
+	if (glyph >= 0x80)
+		return g_Mosaic + ((u16)(glyph & 0x3F) * 8);
+	return g_TTFont[glyph];
 }
 
 void Gfx_InitVideo(void)
