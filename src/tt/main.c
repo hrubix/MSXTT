@@ -349,13 +349,7 @@ void main(void)
 					ShowCurrent();
 					continue;
 				}
-				if (g_VideoOn)
-					Gfx_RestoreDOS();
-				else
-				{
-					DOS_InterSlotCall(g_MNROM, R_KILBUF);
-					EnableInterrupt();
-				}
+				Gfx_RestoreDOS();
 				return;
 			}
 			if ((a == ACT_BS) || (a == ACT_DEL))

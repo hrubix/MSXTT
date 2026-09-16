@@ -49,10 +49,15 @@ void Gfx_InitVideo(void)
 
 void Gfx_RestoreDOS(void)
 {
+	/* BIOS COLOR 15,4,4 (white on blue). Splash left FORCLR/BAKCLR as green/black. */
+	g_FORCLR = 15;
+	g_BAKCLR = 4;
+	g_BDRCLR = 4;
 	if (g_IsMsx1)
 		Scr2_RestoreDOS();
 	else
 		Scr5_RestoreDOS();
+	DOS_InterSlotCall(g_MNROM, R_CHGCLR);
 }
 
 void Gfx_DrawPage(void)

@@ -22,9 +22,25 @@ static void SetInk(u8 fg)
 	DOS_InterSlotCall(g_MNROM, R_CHGCLR);
 }
 
+static u8 s_PutC;
+
+/* Page 0 is DOS RAM, so a direct CHPUT at 00A2h hangs. CALSLT the Main-ROM. */
 static void PutCh(c8 c)
 {
-	BIOS_TextPrintChar(c);
+	s_PutC = (u8)c;
+	__asm
+		push	ix
+		ld		a, (_g_MNROM)
+		ld		h, a
+		ld		l, #0
+		push	hl
+		pop		iy
+		ld		ix, #R_CHPUT
+		ld		a, (_s_PutC)
+		call	#R_CALSLT
+		ei
+		pop		ix
+	__endasm;
 }
 
 static void PutStr(const c8* s)
@@ -67,7 +83,10 @@ void Splash_Show(u8 unapi_miss)
 	u8 i;
 
 	DOS_InterSlotCall(g_MNROM, R_INITXT);
-	SetInk(SPL_GREEN);
+	/* SCREEN 0 has one foreground for the whole screen (R#7). On UNAPI miss
+	 * use medium red for every line; otherwise green. */
+	SetInk(unapi_miss ? SPL_RED : SPL_GREEN);
+	DOS_InterSlotCall(g_MNROM, R_ENASCR);
 
 	PutCentered(10, "NOS Teletekst");
 
@@ -86,16 +105,14 @@ void Splash_Show(u8 unapi_miss)
 	PutCentered(12, "made by rubikonlab.com");
 
 	if (g_IsMsx1)
-		PutCentered(14, "Starting MSX-1 screen 2");
+		PutCentered(14, "mode: MSX-1 screen 2");
 	else
-		PutCentered(14, "Starting MSX-2 screen 5");
+		PutCentered(14, "mode: MSX-2 screen 5");
 
 	if (unapi_miss)
 	{
-		SetInk(SPL_RED);
 		PutCentered(16, "No MSX-UNAPI found");
 		PutCentered(17, "msxpico.com");
-		SetInk(SPL_GREEN);
 	}
 }
 

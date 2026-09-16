@@ -200,12 +200,25 @@ void Scr2_DrawOverlay(u8 d0, u8 d1, u8 d2, u8 fg)
 	}
 }
 
+/* Combined MSX1|MSX2 build uses 17-bit VRAM. SetColorTable writes V9938 R#10,
+ * which aliases to R#2 on TMS9918 and parks the name table at 0000h on top of
+ * the pattern generator. Sprites stay at SCREEN 0 leftovers (SAT/SPT 0000h). */
+static void Scr2_CommitTables(void)
+{
+	VDP_RegWrite(2, 0x06); /* NT 1800h */
+	VDP_RegWrite(3, 0xFF); /* CT 2000h, 3 banks */
+	VDP_RegWrite(4, 0x03); /* PT 0000h, 3 banks */
+	VDP_RegWrite(5, 0x36); /* SAT 1B00h */
+	VDP_RegWrite(6, 0x07); /* SPT 3800h */
+}
+
 void Scr2_InitVideo(void)
 {
 	Scr2_InitLuts();
 
 	VDP_SetMode(VDP_MODE_SCREEN2);
 	VDP_SetColor(1);
+	Scr2_CommitTables();
 	VDP_Poke_16K(208, VDP_G2_ADDR_SAT);
 
 	VDP_EnableDisplay(FALSE);

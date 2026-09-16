@@ -383,6 +383,8 @@ void Scr5_InitVideo(void)
 	u8 i;
 
 	VDP_SetMode(VDP_MODE_SCREEN5);
+	/* Machine 12 compiles MSX_1|MSX_2, so MSXgl skips this in SetMode. */
+	VDP_SetLineCount(VDP_LINE_212);
 	VDP_EnableTransparency(FALSE);
 	VDP_DisableSprite();
 	VDP_SetColor(0);

@@ -1,6 +1,6 @@
 # MSXTT
 
-Combined NOS Teletekst viewer for MSX. One Nextor `MSXTT.COM` detects the machine at boot: **MSX1 → SCREEN 2**, anything else (MSX2, MSX2+, turbo R) → **SCREEN 5**. Fetches `/json/NNN` over UNAPI HTTP using `TT.CFG` `proxy-url`. Version **0.9.200**. Author: rubikonlab@proton.me (`made by rubikonlab.com`).
+Combined NOS Teletekst viewer for MSX. One Nextor `MSXTT.COM` detects the machine at boot: **MSX1 → SCREEN 2**, anything else (MSX2, MSX2+, turbo R) → **SCREEN 5**. Fetches `/json/NNN` over UNAPI HTTP using `TT.CFG` `proxy-url`. Version **0.9.207**. Author: rubikonlab@proton.me (`made by rubikonlab.com`).
 
 ## Keys
 

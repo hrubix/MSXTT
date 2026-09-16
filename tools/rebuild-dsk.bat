@@ -21,6 +21,11 @@ if not exist "%ROOT%\emul\dsk" mkdir "%ROOT%\emul\dsk"
 pushd "%TAR%"
 msxtar -cf temp.dsk --dos2 --size=720K autoexec.bat msxtt.com COMMAND2.COM MSXDOS2.SYS UNAPI.COM TT.CFG
 copy /Y temp.dsk "%ROOT%\emul\dsk\msxtt.dsk" >nul
-del /Q temp.dsk autoexec.bat msxtt.com COMMAND2.COM MSXDOS2.SYS UNAPI.COM TT.CFG 2>nul
+del /Q UNAPI.COM >nul
+copy /Y "%ROOT%\disk\AUTOEXEC.NOUNAPI.BAT" autoexec.bat >nul
+msxtar -cf temp.dsk --dos2 --size=720K autoexec.bat msxtt.com COMMAND2.COM MSXDOS2.SYS TT.CFG
+copy /Y temp.dsk "%ROOT%\emul\dsk\msxtt-nounapi.dsk" >nul
+del /Q temp.dsk autoexec.bat msxtt.com COMMAND2.COM MSXDOS2.SYS TT.CFG 2>nul
 popd
 echo Wrote %ROOT%\emul\dsk\msxtt.dsk
+echo Wrote %ROOT%\emul\dsk\msxtt-nounapi.dsk
