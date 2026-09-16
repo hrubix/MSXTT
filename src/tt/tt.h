@@ -76,6 +76,7 @@ bool TT_TimedOut(u16 start, u16 ticks);
 void TT_LoadCfg(void);
 u8   TT_InitNet(void);
 u8   TT_FetchPage(u16 page, u8 sub);
+void TT_PageDigits(u16 page, u8* d); /* d[0]=hundreds, d[1]=tens, d[2]=ones */
 
 bool TT_ParseHttpJson(const c8* json, u16 len);
 void TT_ParseNav(const c8* json, u16 len);

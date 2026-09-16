@@ -86,7 +86,11 @@
 // VRAM addressing unit
 // - VDP_VRAM_ADDR_14 ............. Use 14-bits 16K VRAM addressing for MSX1 (u16)
 // - VDP_VRAM_ADDR_17 ............. Use 17-bits 128K VRAM addressing for MSX2/2+/turbo R (u32)
+#if TT_SLIM
+#define VDP_VRAM_ADDR				VDP_VRAM_ADDR_14	/* Scr2 uses _16K; Scr5 uses commands */
+#else
 #define VDP_VRAM_ADDR				VDP_VRAM_ADDR_17
+#endif
 
 // VDP X/Y units
 // - VDP_UNIT_U8 .................. X and Y use 8-bits values
@@ -119,6 +123,7 @@
 #define VDP_USE_DEFAULT_SETTINGS	FALSE	/* Scr2/Scr5 set display/sprites/lines */
 #define VDP_USE_GM2_HELPER			FALSE	/* no LoadPattern/WriteLayout_GM2 */
 #define VDP_USE_EXTRA_API			FALSE	/* ClearVRAM/GetVersion/SetAdjustOffset */
+#define VDP_USE_TABLE_SETTERS		FALSE	/* SetMode uses RegWrite; Scr2_CommitTables */
 #define VDP_USE_16X16_SPRITE		FALSE
 #define VDP_USE_RESTORE_S0			TRUE
 #define VDP_USE_PALETTE16			FALSE
@@ -146,6 +151,7 @@
 #define VDP_USE_DEFAULT_SETTINGS	TRUE	// Auto-initialization of common VDP feature
 #define VDP_USE_GM2_HELPER			TRUE	// LoadPattern/LoadColor/WriteLayout/FillLayout_GM2
 #define VDP_USE_EXTRA_API			TRUE	// ClearVRAM/GetVersion/SetAdjustOffset
+#define VDP_USE_TABLE_SETTERS		TRUE
 #define VDP_USE_16X16_SPRITE		TRUE	// Use 16x16 sprites mode
 #define VDP_USE_RESTORE_S0			TRUE	// Do restore of status register pointer to S#0 (needed onlt for default BIOS ISR)
 #define VDP_USE_PALETTE16			FALSE	// Use 16 entries palette (use only 15 entries otherwise)

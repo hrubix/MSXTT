@@ -11,7 +11,7 @@ ProjModules = [
 ];
 LibModules = [ "system", "bios", "memory", "vdp", "dos" ];
 AddSources = [
-	"MSXgl/engine/src/network/unapi_tcp.asm",
+	"src/tt/unapi_tcp_slim.asm",
 	"src/tt/scr2_expand.s"
 ];
 

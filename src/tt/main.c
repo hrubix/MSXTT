@@ -57,7 +57,9 @@ static u8 g_VideoOn;
 
 static void OverlayPage(u16 page, u8 fg)
 {
-	Gfx_DrawOverlay((u8)(page / 100), (u8)((page / 10) % 10), (u8)(page % 10), fg);
+	u8 dig[3];
+	TT_PageDigits(page, dig);
+	Gfx_DrawOverlay(dig[0], dig[1], dig[2], fg);
 }
 
 static void OverlayEntry(u8 fg)

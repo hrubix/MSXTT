@@ -79,6 +79,15 @@ u16 TT_Jiffy(void)
 	return ((volatile u8*)0xFC9E)[0] | ((u16)((volatile u8*)0xFC9E)[1] << 8);
 }
 
+void TT_PageDigits(u16 page, u8* d)
+{
+	d[0] = 0;
+	while (page >= 100) { page = (u16)(page - 100); d[0]++; }
+	d[1] = 0;
+	while (page >= 10) { page = (u16)(page - 10); d[1]++; }
+	d[2] = (u8)page;
+}
+
 void TT_WaitTick(void)
 {
 	EnableInterrupt();
@@ -611,7 +620,6 @@ u8 TT_FetchPage(u16 page, u8 sub)
 	u16 st;
 	u16 off;
 	u16 body;
-	u16 n;
 
 	if (page > 999)
 		return TT_ERR_HTTP;
@@ -626,12 +634,13 @@ u8 TT_FetchPage(u16 page, u8 sub)
 		return g_Cancel ? TT_ERR_CANCEL : TT_ERR_TCP;
 
 	/* Avoid SDCC div helpers for three digits. */
-	n = page;
-	d0 = 0;
-	while (n >= 100) { n = (u16)(n - 100); d0++; }
-	d1 = 0;
-	while (n >= 10) { n = (u16)(n - 10); d1++; }
-	d2 = (u8)n;
+	{
+		u8 dig[3];
+		TT_PageDigits(page, dig);
+		d0 = dig[0];
+		d1 = dig[1];
+		d2 = dig[2];
+	}
 
 	p = g_Request;
 	Mem_Copy("GET /json/", p, 10);
@@ -642,10 +651,15 @@ u8 TT_FetchPage(u16 page, u8 sub)
 	/* The first subpage is the bare id; later ones are NNN-S. */
 	if (sub >= 2)
 	{
+		u8 s = sub;
 		*p++ = '-';
-		if (sub >= 10)
-			*p++ = (c8)('0' + (u8)(sub / 10));
-		*p++ = (c8)('0' + (u8)(sub % 10));
+		if (s >= 10)
+		{
+			u8 t = 0;
+			while (s >= 10) { s = (u8)(s - 10); t++; }
+			*p++ = (c8)('0' + t);
+		}
+		*p++ = (c8)('0' + s);
 	}
 	Mem_Copy(" HTTP/1.0\r\nHost: ", p, 17);
 	p += 17;
