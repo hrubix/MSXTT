@@ -142,7 +142,8 @@ static i8 NextAction(void)
 	return -1;
 }
 
-/* Warm reset — same as the machine RESET button. */
+/* Warm reset — ROM only (same as the machine RESET button). */
+#if TT_ROM
 static void HardReboot(void)
 {
 	DisableInterrupt();
@@ -150,6 +151,7 @@ static void HardReboot(void)
 		jp	0x0000
 	__endasm;
 }
+#endif
 
 static bool DigitPending(void)
 {
@@ -170,11 +172,20 @@ static bool DigitPending(void)
 bool TT_PollAbort(void)
 {
 	ScanActions();
+#if TT_ROM
 	if (g_ActEdge & ACT_ABORT_MASK)
 		HardReboot();
+#endif
 	if (g_SilentFetch)
 		return (g_ActEdge || DigitPending()) ? TRUE : FALSE;
 	DigitEdge();
+#if !TT_ROM
+	if (g_ActEdge & ACT_ABORT_MASK)
+	{
+		g_ActEdge = 0;
+		return TRUE;
+	}
+#endif
 	g_ActEdge = 0;
 	return FALSE;
 }
@@ -351,8 +362,18 @@ void main(void)
 		{
 			if ((a == ACT_ESC) || (a == ACT_STOP))
 			{
+#if TT_ROM
 				HardReboot();
-				continue;
+#else
+				if (g_EntryN)
+				{
+					g_EntryN = 0;
+					ShowCurrent();
+					continue;
+				}
+				Gfx_RestoreDOS();
+				return;
+#endif
 			}
 			if ((a == ACT_BS) || (a == ACT_DEL))
 			{

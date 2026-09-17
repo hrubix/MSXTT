@@ -2,7 +2,7 @@
 setlocal
 set ROOT=%~dp0
 set OMSXDIR=%ROOT%tools\openmsxnet
-set DSK=%ROOT%emul\dsk\msxtt.dsk
+set DSK=%ROOT%emul\dsk\MSXTT.DSK
 
 set OPENMSX_HOME=%ROOT%emul\openmsxnet-home
 set OPENMSX_USER_DATA=%OPENMSX_HOME%\share

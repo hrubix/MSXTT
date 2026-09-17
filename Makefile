@@ -6,7 +6,7 @@ all: build
 
 help:
 	@echo Targets: build clean com help
-	@echo Output: emul\dos2\msxtt.com emul\dsk\msxtt.dsk
+	@echo Output: emul\dos2\msxtt.com emul\dsk\MSXTT.DSK build\MSXTT.COM
 
 build:
 	@build.bat

@@ -83,7 +83,17 @@ def main() -> int:
 			continue
 		sys.stderr.write("Usage: tt-proxy.py [--port N]\n")
 		return 2
-	httpd = ThreadingHTTPServer((BIND, port), Handler)
+	ThreadingHTTPServer.allow_reuse_address = True
+	try:
+		httpd = ThreadingHTTPServer((BIND, port), Handler)
+	except OSError as exc:
+		sys.stderr.write(
+			"Cannot bind %s:%d (%s).\n"
+			"Another tt-proxy (or app) is still using that port.\n"
+			"Re-run tools\\run-tt-proxy.bat — it frees 8080 first — or pass --port N.\n"
+			% (BIND, port, exc)
+		)
+		return 1
 	print("Teletekst proxy http://127.0.0.1:%d/json/{page} (listen %s) -> %s/json/{page}" % (port, BIND, UPSTREAM), flush=True)
 	try:
 		httpd.serve_forever()
