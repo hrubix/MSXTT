@@ -33,3 +33,9 @@ alwaysApply: true
 - After every UNAPI call, re-enable interrupts (`EnableInterrupt()`).
 - Do not call `tcpip_tcp_flush`.
 - Keypad rows 9–10: if `g_NEWKEY[9]` and `[10]` are all-pressed (`0x00`), there is no keypad.
+
+## Debug ROM builds (hardware testers)
+
+- Every new debug/hardened ROM bake must get a **unique filename** under `build/` and `emul/rom/` (and leave prior builds intact).
+- Pattern: `MSXTT3.ROM`, `MSXTT3B.ROM`, `MSXTT3C.ROM`, … then `MSXTT4.ROM` / `MSXTT4B.ROM`, etc. Never overwrite a lettered debug ROM the tester may still be flashing.
+- Also keep/update the “current” build output from the bat (e.g. `MSXTT3.ROM`) if the build script writes one, but always **copy** to the next unique letter name when shipping a new debug image.

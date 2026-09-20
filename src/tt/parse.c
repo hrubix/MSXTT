@@ -5,8 +5,8 @@
 #include "tt.h"
 
 #if TT_ROM
-u8 __at(0x6000) g_Cells[TT_CELLS * 2];
-u8 __at(0x6800) g_PrevCells[TT_CELLS * 2];
+u8 __at(0xC000) g_Cells[TT_CELLS * 2];
+u8 __at(0xC7D0) g_PrevCells[TT_CELLS * 2];
 #else
 u8 g_Cells[TT_CELLS * 2];
 /* Absolute so the extra 2 KB does not grow _DATA into the UNAPI page-2 buffers. */

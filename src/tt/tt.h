@@ -17,7 +17,12 @@
 #define TT_CELL_W    6
 #define TT_CELL_H    8
 #define TT_ORIGIN_X  8
+#if (TARGET == TARGET_ROM_16K_P2)
+/* Page 3 must hold cells + prev + DATA + HTTP under the F200h stack. */
+#define TT_HTTP_MAX  4096
+#else
 #define TT_HTTP_MAX  8192
+#endif
 #define TT_HOST_MAX  64
 #define TT_CELLS     (TT_COLS * TT_ROWS)
 
@@ -44,9 +49,14 @@ typedef struct
 
 /* glyph, attr (fg<<4|bg). 0x80-0xBF mosaic (low 6 bits); 0xC0-0xFF Latin-1. */
 #if TT_ROM
-extern u8 __at(0x6000) g_Cells[TT_CELLS * 2];
-extern u8 __at(0x6800) g_PrevCells[TT_CELLS * 2];
-extern c8 __at(0x4000) g_Http[TT_HTTP_MAX];
+/*
+ * Pico WIFI+Telnet: page 1 (4000h–7FFFh) is the ESP8266 UNAPI BIOS + mem UART
+ * at 7F06h/7F07h. Page 2 (8000h–BFFFh) is this cart. All RW buffers live in
+ * page 3 below the ROM stack (F200h).
+ */
+extern u8 __at(0xC000) g_Cells[TT_CELLS * 2];
+extern u8 __at(0xC7D0) g_PrevCells[TT_CELLS * 2];
+extern c8 __at(0xE020) g_Http[TT_HTTP_MAX];
 #else
 extern u8 g_Cells[TT_CELLS * 2];
 extern u8 __at(0x8200) g_PrevCells[TT_CELLS * 2];
@@ -64,7 +74,10 @@ extern TT_Link g_NavPrevSub;
 extern TT_Link g_Fast[4];
 
 void TT_AfterUnapi(void);
-#if TT_ROM
+void TT_DbgImpl(u8 code); /* asm may call; no-op unless TT_ROM_DBG */
+#if TT_ROM && defined(TT_ROM_DBG)
+#define TT_Dbg(code) TT_DbgImpl(code)
+#elif TT_ROM
 #define TT_Dbg(code) ((void)(code))
 #else
 #define TT_Dbg(code) ((void)0)

@@ -31,9 +31,15 @@ static const u16 g_DOSPalette[16] = {
 
 static u8 g_Cell[24];
 static u8 g_RowBuf[TT_ROW_BYTES];
+#if TT_ROM
+/* Page 3 RAM — never 8100h (that is this cart's ROM window). */
+#define TT_LUT_HI 0xD1
+static u8 __at(0xD160) g_ExpLut[4];
+#else
 /* Same 0x8100 window as net g_Chunk; draw and recv never overlap. */
 #define TT_LUT_HI 0x81
 static u8 __at(0x8100) g_ExpLut[4];
+#endif
 
 static u8 OriginY(void)
 {

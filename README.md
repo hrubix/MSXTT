@@ -1,8 +1,14 @@
 # MSXTT
 
-MSXTT is a live NOS Teletekst viewer for MSX1 and MSX2 computers, bringing the classic Dutch Teletekst experience to your loved MSX computer. MSXTT is a combined NOS Teletekst viewer for MSX, detecting the machine at boot: **MSX1 → SCREEN 2**, anything else (MSX2, MSX2+, turbo R) → **SCREEN 5**. DOS2 version fetches `teletekst-data.nos.nl/json/NNN` over HTTP-HTTPS local proxy using `TT.CFG` `proxy-url`. Cartridge `MSXTT.ROM` (16 KB at 8000h) fetches **HTTPS** directly from `teletekst-data.nos.nl`. 
+MSXTT is a live NOS Teletekst viewer for MSX1 and MSX2 computers, bringing the classic Dutch Teletekst experience to your loved MSX computer. MSXTT is a combined NOS Teletekst viewer for MSX, detecting the machine at boot: **MSX1 → SCREEN 2**, anything else (MSX2, MSX2+, turbo R) → **SCREEN 5**.
 
-Version **0.9.215**. Author: [rubikonlab@proton.me](mailto:rubikonlab@proton.me) (`made by rubikonlab.com`).
+| Binary | Use |
+| ------ | --- |
+| `MSXTT.COM` | Emulator / Nextor DSK: HTTP via `TT.CFG` proxy + `UNAPI.COM` |
+| `MSXTTPP.COM` | Real MSX + Pico+: HTTPS to `teletekst-data.nos.nl` (cart UNAPI TLS). No `TT.CFG`, no `UNAPI.COM` |
+| `MSXTT.ROM` | Page-2 cart: same HTTPS path as TTPP |
+
+Version **0.9.227 beta**. Made by [rubikonlab.com](https://rubikonlab.com).
 
 ## Keys
 
@@ -14,6 +20,8 @@ Version **0.9.215**. Author: [rubikonlab@proton.me](mailto:rubikonlab@proton.me)
 - `HOME`: page 100
 - left / right: previous / next page
 - up / down: previous / next subpage
+
+
 
 ## MSX1 vs MSX2
 
@@ -49,6 +57,12 @@ build.bat
 ```
 
 Writes `build/MSXTT.COM`, `build/MSXTT.DSK`, `emul/dos2/msxtt.com`, and `emul/dsk/MSXTT.DSK` (`AUTOEXEC.BAT`, `UNAPI.COM`, `MSXTT.COM`, `TT.CFG` → local proxy `127.0.0.1:8080`). Refresh is 20 seconds (not configurable). Host proxy: `tools/run-tt-proxy.bat` (Windows Python on `127.0.0.1:8080` so openMSX can connect; use `--wsl` only if you need a WSL listener).
+
+```
+build-msxttpp.bat
+```
+
+Writes `build/MSXTTPP.COM` only (Pico+ TLS; copy to your Nextor disk yourself). Do not run `UNAPI.COM` with it — WiFi/UNAPI is on the cart.
 
 ```
 build-msxtt-rom.bat

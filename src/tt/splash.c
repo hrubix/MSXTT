@@ -79,6 +79,14 @@ void Splash_Detect(void)
 	g_IsMsx1 = (Sys_GetMSXVersion() == 0) ? 1 : 0;
 }
 
+#if defined(TT_ROM_DBG)
+static c8 HexNibble(u8 v)
+{
+	v &= 0x0F;
+	return (c8)((v < 10) ? ('0' + v) : ('A' + v - 10));
+}
+#endif
+
 void Splash_Show(u8 unapi_miss)
 {
 	c8 line[40];
@@ -118,8 +126,65 @@ void Splash_Show(u8 unapi_miss)
 	{
 		PutCentered(16, "No MSX-UNAPI found");
 		PutCentered(17, "msxpico.com");
+#if defined(TT_ROM_DBG)
+		/* r=count u=ok h=helper k=HOKVLD; EXTBIO 5 bytes; ARG */
+		{
+			extern u8 unapi_raw_count;
+			extern u16 implementation_count;
+			extern u16 ram_helper_call_address;
+			c8 d[40];
+			u8 j = 0;
+			u8 n;
+			volatile u8* arg = (volatile u8*)0xF847;
+			volatile u8* ext = (volatile u8*)0xFFCA;
+			u8 hok = *(volatile u8*)0xFB20;
+			d[j++] = 'r';
+			d[j++] = HexNibble((u8)(unapi_raw_count >> 4));
+			d[j++] = HexNibble(unapi_raw_count);
+			d[j++] = ' ';
+			d[j++] = 'u';
+			d[j++] = HexNibble((u8)((implementation_count >> 4) & 0x0F));
+			d[j++] = HexNibble((u8)(implementation_count & 0x0F));
+			d[j++] = ' ';
+			d[j++] = 'h';
+			d[j++] = ram_helper_call_address ? '1' : '0';
+			d[j++] = ' ';
+			d[j++] = 'k';
+			d[j++] = (hok & 1) ? '1' : '0';
+			d[j++] = ' ';
+			for (n = 0; n < 5; n++)
+			{
+				d[j++] = HexNibble((u8)(ext[n] >> 4));
+				d[j++] = HexNibble(ext[n]);
+			}
+			d[j] = 0;
+			PutCentered(18, d);
+			j = 0;
+			for (n = 0; n < 6; n++)
+			{
+				u8 c = arg[n];
+				d[j++] = (c >= 32 && c < 127) ? (c8)c : '.';
+			}
+			d[j] = 0;
+			PutCentered(19, d);
+		}
+#endif
 	}
 }
+
+#if defined(TT_ROM_DBG)
+void Splash_Dbg(u8 code)
+{
+	c8 line[8];
+
+	line[0] = 'D';
+	line[1] = HexNibble((u8)(code >> 4));
+	line[2] = HexNibble(code);
+	line[3] = 0;
+	Locate(18, 1);
+	PutStr(line);
+}
+#endif
 
 void Splash_Pause(void)
 {

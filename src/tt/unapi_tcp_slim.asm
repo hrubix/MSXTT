@@ -14,6 +14,12 @@ RDSLT	.equ	#0xc		; RDSLT BIOS call
 UNAPIID	.equ	#0x2222		; UNAPI EXTBIO identifier
 ARG	.equ	#0xf847		; location of ARG
 
+.macro CALL_EXTBIO
+	push	ix
+	call	EXTBIO
+	pop	ix
+.endm
+
 ; argument stack locations
 C_ARG0	.equ	#2+#2		; +2 for calling get_pointer_to_var, +2 for calling caller
 C_ARG1	.equ	#6
@@ -34,28 +40,53 @@ _implementation_count::
 	.ds	2		; number of implemenations. Populated by tcpip_enumerate
 _ram_helper_call_address::
 	.ds	2		; RAM helper jump table address in CPU bank 3
+_unapi_raw_count::
+	.ds	1		; B from EXTBIO count (before helper filter)
+unapi_enum_slot:
+	.ds	1
+unapi_enum_segment:
+	.ds	1
+unapi_enum_entry:
+	.ds	2
 implementation_initlist:	; space for 4 implementations
 	.ds	#8*#4
 
 ; Code starts here
 	.area _CODE
 
+	.globl	_TT_DbgImpl
+
 ;------------------------------------------------------------------------
-; CALL_UNAPI: call the UNAPI - directly or through the RAM helper
+; CALL_UNAPI: call the UNAPI - page3 direct, CALSLT (ROM), or RAM helper
 ;------------------------------------------------------------------------
 ; in:	IX=call address
 ;	IYh=slot ID
 ;	IYl=segment (memory mapper page) number
 ;	all other registers are input to routine being called
 ; out:	all registers: output from the routine called
+; UNAPI: if entry >= C000h, call directly (ignore slot/segment). Pico+ and
+; many ROM stacks install a page-3 jump; without this we skip them when no
+; RAM helper is present (bare cart boot).
 call_unapi:
 	push	af			; preserve AF
+	.db	#0xdd,#0x7c		; "ld a,ixh"
+	cp	#0xc0
+	jr	nc,call_unapi_page3
 	.db	#0xfd,#0x7d		; "ld a,iyl" -> segment number info A
 	inc	a
 	jr	nz,use_ram_helper_for_call
 
 	pop	af			; restore AF
 	jp	CALSLT			; go to CALSLT and return to the caller
+
+call_unapi_page3:
+	pop	af			; UNAPI AF in
+	push	ix
+	ld	ix,#call_unapi_page3_ret
+	ex	(sp),ix			; (sp)=return, IX=entry
+	jp	(ix)
+call_unapi_page3_ret:
+	ret
 
 use_ram_helper_for_call:
 	; we are here to use RAM helper as RAM segment 	is not 0ffh
@@ -72,13 +103,38 @@ use_ram_helper_for_call:
 	ex	(sp),hl			; now HL=argument in HL, (stack)=call address
 	ret				; jump to jump table, and return to caller on completion
 
-;------------------------------------------------------------------------
-; CALL_EXTBIO: call EXTBIO hook preserving IX
-;------------------------------------------------------------------------
-call_extbio:
+; Copy the canonical API identifier to ARG without changing discovery inputs.
+prime_tcpip_arg:
+	push	af
+	push	bc
+	push	de
+	push	hl
+	ld	hl,#TCPIP_S
+	ld	de,#ARG
+	ld	bc,#7
+	ldir
+	pop	hl
+	pop	de
+	pop	bc
+	pop	af
+	ret
+
+; Show a hardware breadcrumb while preserving every main/index register.
+; The debug implementation is a no-op outside TT_ROM_DBG builds.
+dbg_show:
+	push	af
+	push	bc
+	push	de
+	push	hl
 	push	ix
-	call	EXTBIO			; call 	EXTBIO
+	push	iy
+	call	_TT_DbgImpl
+	pop	iy
 	pop	ix
+	pop	hl
+	pop	de
+	pop	bc
+	pop	af
 	ret
 
 ;------------------------------------------------------------------------
@@ -141,41 +197,40 @@ get_pointer_to_var:
 	ret
 
 ;------------------------------------------------------------------------
-; TCPIP_ENUMERATE: get information on number of installed implementations
+; TCPIP_ENUMERATE: discover up to four TCP/IP UNAPI implementations.
+; Order follows the UNAPI specification: prime ARG, count, then query indices.
+; A RAM helper is requested lazily, only if an indexed result is mapped RAM.
 ;------------------------------------------------------------------------
 ; in:	nothing
 ; out:	number of implementations, integer
 _tcpip_enumerate::
-	; get RAM helper call table address
-	ld	de,#UNAPIID
+	; Clear prior results so repeated enumeration cannot reuse stale state.
 	xor	a
 	ld	h,a
 	ld	l,a
-	dec	a
-	call	call_extbio		; call UNAPI to identify RAM helper installed
-	ld	(_ram_helper_call_address),hl	; will be 0 if not installed
+	ld	(_active_implementation),hl
+	ld	(_implementation_count),hl
+	ld	(_ram_helper_call_address),hl
+	ld	(_unapi_raw_count),a
 
-	; get number of TCP/IP UNAPIs installed
-	ld	hl,#TCPIP_S		; TCP/IP implementation string
-	ld	de,#ARG			; target location to copy UNAPI ID string to
-	ld	bc,#7			; 7 characters to copy
-	ldir
+	; Count: A=0, B=0, DE=2222h at the EXTBIO hook.
+	call	prime_tcpip_arg
 	xor	a
-	ld	l,a
-	ld	h,a
-	ld	(_active_implementation),hl	; reset current implementation number
-	
-	ld	b,a			; A=0, B=0
-	ld	de,#UNAPIID		; TCP/IP unapi EXTBIO function ID
-	call	call_extbio
+	ld	b,a
+	ld	de,#UNAPIID
+	CALL_EXTBIO
 	ld	a,b
+	ld	(_unapi_raw_count),a
+	ld	a,#0x31
+	call	dbg_show
+	ld	a,(_unapi_raw_count)
+
 	cp	#5
 	jr	c,less_than_4
 	ld	a,#4
 less_than_4:
 	or	a
-	jp	z,no_err_return		; if number of implementations returned is 0,
-					; return 0 in HL
+	jp	z,enumerate_ret0
 
 	; we are here if we have found at least one implementation
 	ld	b,a			; number of implementations is in B now
@@ -183,45 +238,75 @@ less_than_4:
 	ld	de,#0			; E=0 initial number of supported implementations counted
 	ld	hl,#implementation_initlist	; pointer to implementation array
 get_calls:
+	; The specification requires ARG to be refreshed for each indexed query.
+	ld	a,#0x32
+	call	dbg_show
+	call	prime_tcpip_arg
 	push	bc			; preserve counters
 	push	de			; preserve number of supported implementations in E
 	push	hl			; preserve pointer to implementation array
 	ld	a,c
 	ld	de,#UNAPIID		; TCP/IP unapi EXTBIO function ID
-	call	call_extbio
-	ex	(sp),hl			; now HL=pointer to array, (stack) is call address
-	ex	af,af'			; preserve slot ID into A'
+	CALL_EXTBIO
+
+	; Save the complete indexed result before any optional helper query.
+	ld	(unapi_enum_slot),a
 	ld	a,b
-	inc	a			; text mapper page # for 0ffh
-	jr	z,not_in_mapped_RAM
+	ld	(unapi_enum_segment),a
+	ld	(unapi_enum_entry),hl
+	ld	a,#0x33
+	call	dbg_show
 
-	; we are here if unapi is in mapped RAM
+	; Page-3 entry (>=C000h): call directly without a RAM helper.
+	ld	a,h
+	cp	#0xc0
+	jr	nc,page3_impl
+
+	; Segment FFh identifies a ROM implementation; call it through CALSLT.
+	ld	a,b
+	inc	a			; test mapper page # for 0ffh
+	jr	z,rom_impl
+
+	; Mapped RAM needs the standard helper. Request it only now.
+	ld	hl,(_ram_helper_call_address)
+	ld	a,h
+	or	l
+	jr	nz,mapped_helper_ready
+	ld	de,#UNAPIID
+	ld	hl,#0
+	ld	a,#0xff
+	CALL_EXTBIO
+	ld	(_ram_helper_call_address),hl
+
+mapped_helper_ready:
 	ld	de,(_ram_helper_call_address)
-	ld	a,e
-	or	d			; check for no helper
-	jr	nz,helper_is_installed
+	ld	a,d
+	or	e
+	jr	z,skip_implementation
+	jr	store_implementation
 
-	; we are here if RAM helper is not installed, skip implementation
-	pop	de			; remote call address from the stack
-	pop	de			; restore number of supported implementations
-	jr	helper_is_not_installed
+page3_impl:
+	ld	de,#CALSLT		; placeholder; call_unapi uses IX direct
+	jr	store_implementation
 
-not_in_mapped_RAM:
-	; we are here if call is not in mapped RAM
+rom_impl:
 	ld	de,#CALSLT
 
-helper_is_installed:
-	inc	hl			; skip JP instruction call
+store_implementation:
+	pop	hl			; restore pointer to implementation array
+	ld	(hl),#0xc3		; JP opcode (safe if BSS was zeroed)
+	inc	hl
 	ld	(hl),e
 	inc	hl
 	ld	(hl),d			; populate calling address
 	inc	hl
-	ex	af,af'			; return slot ID back into A
-	ld	(hl),b			; mapper page # (will go into IYl)
+	ld	a,(unapi_enum_segment)
+	ld	(hl),a			; mapper page # (will go into IYl)
 	inc	hl
+	ld	a,(unapi_enum_slot)
 	ld	(hl),a			; preserve slot # (will go into IYh)
 	inc	hl
-	pop	de			; restore call address
+	ld	de,(unapi_enum_entry)
 	ld	(hl),e
 	inc	hl
 	ld	(hl),d			; call address (will go into IX)
@@ -229,8 +314,13 @@ helper_is_installed:
 	inc	hl			; skip dummy byte
 	pop	de
 	inc	e			; +1 to number of supported implementations
+	jr	next_implementation
 
-helper_is_not_installed:
+skip_implementation:
+	pop	hl			; discard saved array pointer
+	pop	de			; restore number of supported implementations
+
+next_implementation:
 	pop	bc			; implementation counter and current implementation #
 	inc	c
 	djnz	get_calls
@@ -238,6 +328,11 @@ helper_is_not_installed:
 	ex	de,hl			; now number of supported implementatios found is in HL
 	ld	(_implementation_count),hl	; and store number of supported inplementations
 						; into dedicated variable
+	ret
+
+enumerate_ret0:
+	ld	hl,#0
+	ld	(_implementation_count),hl
 	ret
 
 ;------------------------------------------------------------------------
@@ -276,6 +371,13 @@ _tcpip_impl_getinfo::
 	inc	hl
 	ld	(hl),d			; set BUF address to return as pointer to string
 
+	; Name in page 3 → direct copy (Pico+/Konamiman page-3 impl)
+	pop	hl			; pointer to string
+	push	hl
+	ld	a,h
+	cp	#0xc0
+	jr	nc,use_direct_to_read
+
 	.db	#0xfd,#0x7d		; "ld a,iyl" -> segment number info A
 	inc	a			; check for 0ffh
 	jr	z,use_rdslt_to_read_slot
@@ -308,6 +410,18 @@ return_to_loop:
 	jr	nz,loop_copy_using_ramhelper
 	pop	ix
 	jr	error_returned		; return with A=0 (HL will be 0)
+
+use_direct_to_read:
+	pop	hl
+	ld	de,#BUF
+loop_copy_direct:
+	ld	a,(hl)
+	ld	(de),a
+	inc	hl
+	inc	de
+	or	a
+	jr	nz,loop_copy_direct
+	jr	error_returned
 
 use_rdslt_to_read_slot:
 	; we are here to copy implementation string to BUF using RDSLT
@@ -597,6 +711,14 @@ __xinit__implementation_count:
 	.dw	0		; number of implemenations. Populated by tcpip_enumerate
 __xinit__ram_helper_call_address:
 	.dw	0		; RAM helper jump table address in CPU bank 3
+__xinit__unapi_raw_count:
+	.db	0
+__xinit_unapi_enum_slot:
+	.db	0
+__xinit_unapi_enum_segment:
+	.db	0
+__xinit_unapi_enum_entry:
+	.dw	0
 
 __xinit_implementation_initlist:	; space for 4 implementations
 	; implementaton 0

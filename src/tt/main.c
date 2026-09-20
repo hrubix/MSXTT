@@ -293,7 +293,11 @@ static void GoLink(const TT_Link* l)
 	LoadPage(l->page, l->sub);
 }
 
+#if TT_ROM && defined(TT_ROM_SAFE_STACK)
+void TT_RomMain(void)
+#else
 void main(void)
+#endif
 {
 	u8 boot_err;
 
@@ -372,7 +376,10 @@ void main(void)
 					continue;
 				}
 				Gfx_RestoreDOS();
-				return;
+				/* Do not return through crt0: A is undefined after RestoreDOS
+				 * and crt0 passes it to _TERM (0xF4 = "*** Wrong disk for file").
+				 * Also the DSK must carry this COM — a stale image keeps the bug. */
+				DOS_Exit0();
 #endif
 			}
 			if ((a == ACT_BS) || (a == ACT_DEL))

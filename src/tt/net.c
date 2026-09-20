@@ -7,6 +7,9 @@
 #include "dos.h"
 #endif
 #include "network/unapi_tcp.h"
+#if defined(TT_ROM_DBG)
+#include "splash.h"
+#endif
 
 #ifndef TT_DIRECT_NOS
 #define TT_DIRECT_NOS 0
@@ -22,13 +25,17 @@ u16 g_TTPort;
 u16 g_RefreshSec;
 static char g_Ip[4];
 
-/* UNAPI maps the Pico+ (or other stack) into page 1 (4000h–7FFFh) for each
- * call, so buffers it reads or writes must live outside that page. */
+/*
+ * ROM (Pico WIFI+Telnet): page 1 = ESP8266 UNAPI BIOS + mem UART (7F06h/7F07h),
+ * page 2 = this cart. Do not place RW buffers in 4000h–BFFFh and do not ENASLT
+ * RAM into page 1 after UNAPI (that unmaps the UART and resets within ~1 s).
+ * Page-3 layout (stack at F200h): cells C000, prev C7D0, request CFA0,
+ * chunk D060, linker DATA from D180, HTTP E020 (4 KB).
+ */
 #if TT_ROM
-/* Viewer ROM is 8000h–BFFFh. Pin UNAPI I/O in page 3; BSS starts at 0xC200. */
-__at(0xC000) static c8 g_Request[192];
-__at(0xC0C0) static c8 g_Chunk[256];
-c8 __at(0x4000) g_Http[TT_HTTP_MAX];
+__at(0xCFA0) static c8 g_Request[192];
+__at(0xD060) static c8 g_Chunk[256];
+c8 __at(0xE020) g_Http[TT_HTTP_MAX];
 #else
 /* DOS2 COM: pin in page 2, past code/data and below the TPA stack. */
 __at(0x8000) static c8 g_Request[192];
@@ -46,33 +53,23 @@ static bool Cancelled(void)
 	return g_Cancel ? TRUE : FALSE;
 }
 
-#if TT_ROM
-/* ENASLT page 1. slot in A (__sdcccall(1)). BIOS_SwitchSlot's 2nd arg is not in H. */
-static void EnasltPage1(u8 slot)
-{
-	slot;
-	__asm
-		ld	h, #0x40
-		call	#0x0024
-	__endasm;
-}
-#endif
-
 void TT_AfterUnapi(void)
 {
-#if TT_ROM
-	/* g_Cells / g_Http live at 4000h–7FFFh. UNAPI maps Pico+ into page 1.
-	 * RAMAD3 is the mapper RAM slot; RAMAD1 can be a cart (Pico+) if Disk
-	 * ROM never ran. Mapping that slot makes splash writes hit ROM. */
-	{
-		u8 ram = *(u8*)0xF344; /* RAMAD3 */
-		if (ram == 0xFF)
-			ram = *(u8*)0xF342; /* RAMAD1 */
-		EnasltPage1(ram);
-	}
-#endif
+	/* ROM: leave page 1 on the Pico slot so ESP mem-UART stays visible. */
 	EnableInterrupt();
 }
+
+#if TT_ROM && defined(TT_ROM_DBG)
+void TT_DbgImpl(u8 code)
+{
+	Splash_Dbg(code);
+}
+#else
+void TT_DbgImpl(u8 code)
+{
+	(void)code;
+}
+#endif
 
 u16 TT_Jiffy(void)
 {
@@ -297,7 +294,7 @@ static bool ResolveHost(void)
 	if (ParseIPv4(g_TTHost, g_Ip))
 		return TRUE;
 
-	/* g_TTHost itself sits in page 1, so query through the page-2 buffer. */
+	/* Host name for dns_q: page-3 g_Request (Pico reads it with page 1 = BIOS). */
 	{
 		u8 i = 0;
 		while (g_TTHost[i] && (i < TT_HOST_MAX))
@@ -385,7 +382,7 @@ static bool OpenTcp(int* conn)
 	tcp.user_timeout = 0;
 	tcp.flags = 0;
 #if TT_DIRECT_NOS
-	/* UNAPI 1.1: TLS on, no cert verify. Hostname at +11 must be page 2. */
+	/* UNAPI 1.1: TLS on, no cert verify. Hostname at +11 is page-3 g_Request. */
 	{
 		u8 i = 0;
 		u16 hp;
@@ -577,30 +574,36 @@ static u16 HttpStatus(u16 len)
 
 u8 TT_InitNet(void)
 {
+#if !TT_ROM
 	char* impl_name;
 	int spec_ver;
 	int impl_ver;
+#endif
 	int n;
 #if !TT_ROM
 	u16 i;
 #endif
 
 	EnableInterrupt();
+	TT_Dbg(0x30);
 	n = tcpip_enumerate();
+	TT_Dbg(0x34);
 	TT_AfterUnapi();
-	TT_Dbg(0x61);
+	TT_Dbg(0x35);
 	if (n <= 0)
 		return TT_ERR_UNAPI;
+#if TT_ROM
+	/* The name is not used by the cartridge, and UNAPI may destroy IY before
+	 * the assembly name-copy path consumes it. Defer DNS until first fetch. */
+	return TT_OK;
+#else
 	impl_name = 0;
 	spec_ver = 0;
 	impl_ver = 0;
+	TT_Dbg(0x40);
 	tcpip_impl_getinfo(&impl_name, &spec_ver, &impl_ver);
 	TT_AfterUnapi();
 	TT_Dbg(0x62);
-#if TT_ROM
-	/* Splash already on screen. DNS waits until the first fetch. */
-	return TT_OK;
-#else
 	if (!ResolveHost())
 		return TT_ERR_DNS;
 	/* AUTOEXEC chains UNAPI then MSXTT with no pause. */
