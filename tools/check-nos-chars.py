@@ -20,7 +20,6 @@ import urllib.error
 import urllib.request
 from collections import defaultdict
 from html import unescape
-from html.parser import HTMLParser
 from typing import Iterable
 
 BASE = "https://teletekst-data.nos.nl/json/"
@@ -36,9 +35,12 @@ LAT_ENT = {
 	"agrave",
 	"aacute",
 	"auml",
+	"acirc",
+	"aring",
 	"igrave",
 	"iacute",
 	"iuml",
+	"Itilde",
 	"ograve",
 	"oacute",
 	"ouml",
@@ -67,7 +69,7 @@ ENTITY_RE = re.compile(r"&(#x?[0-9A-Fa-f]+|#\d+|[A-Za-z]+);")
 
 
 def is_supported_codepoint(cp: int) -> bool:
-	"""True if parse.c EmitCodepoint / MapAscii path keeps a real glyph."""
+	"""True if parse.c EmitCodepoint keeps a usable glyph (or ASCII fallback)."""
 	if cp == 0xA0:
 		return True
 	if 0x20 <= cp <= 0x7E:
@@ -76,8 +78,8 @@ def is_supported_codepoint(cp: int) -> bool:
 		return True
 	if 0xC0 <= cp <= 0xFF:
 		return True
-	# Control / DEL / C1 / etc. → '?' or space mapping; treat non-print as fail
-	# only when they appear as content characters (rare).
+	if cp == 0x128:  # Ĩ → ASCII 'I'
+		return True
 	return False
 
 
@@ -105,47 +107,16 @@ def classify_entity(body: str) -> tuple[str, bool]:
 	return f"named={body}", ok
 
 
-class TextCollector(HTMLParser):
-	"""Collect character data; ignore tags except for entity-bearing text."""
-
-	def __init__(self) -> None:
-		super().__init__(convert_charrefs=False)
-		self.chunks: list[str] = []
-
-	def handle_data(self, data: str) -> None:
-		self.chunks.append(data)
-
-	def handle_entityref(self, name: str) -> None:
-		self.chunks.append(f"&{name};")
-
-	def handle_charref(self, name: str) -> None:
-		self.chunks.append(f"&#{name};")
-
-
 def analyze_content(content: str) -> set[str]:
-	"""Return set of unsupported labels found in HTML content."""
+	"""Return unsupported labels. Only semicolon-terminated &…; count as entities."""
 	bad: set[str] = set()
 
-	# Entities as written in the JSON (before browser unescape).
 	for m in ENTITY_RE.finditer(content):
 		label, ok = classify_entity(m.group(1))
 		if not ok:
 			bad.add(label)
 
-	# Visible text codepoints (UTF-8 in JSON string after entity decode of text).
-	parser = TextCollector()
-	try:
-		parser.feed(content)
-		parser.close()
-	except Exception:
-		# Fall back: strip tags crudely.
-		text = re.sub(r"<[^>]+>", "", content)
-		parser.chunks = [text]
-
-	raw_text = "".join(parser.chunks)
-	# Decode numeric/named entities that HTMLParser left as literals in data,
-	# and also expand &…; we already classified — for UTF-8 chars use unescape
-	# on a copy with entities turned into chars for codepoint scan.
+	# Codepoints after stripping tags + HTML unescape (raw & in B&B stays ASCII).
 	expanded = unescape(re.sub(r"<[^>]+>", "", content))
 	for ch in expanded:
 		cp = ord(ch)
@@ -155,12 +126,6 @@ def analyze_content(content: str) -> set[str]:
 			continue
 		if not is_supported_codepoint(cp):
 			bad.add(f"U+{cp:04X}")
-
-	# Also scan raw_text for leftover &entity; not expanded
-	for m in ENTITY_RE.finditer(raw_text):
-		label, ok = classify_entity(m.group(1))
-		if not ok:
-			bad.add(label)
 
 	return bad
 

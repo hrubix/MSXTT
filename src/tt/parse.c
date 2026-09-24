@@ -89,7 +89,7 @@ static bool NameIs(const c8* a, const c8* b)
 /* HTML Latin-1 names used by NOS (mostly UTF-8 / &#x..; otherwise). */
 static const c8 g_LatEnt[] =
 	"egrave\0eacute\0ecirc\0euml\0"
-	"agrave\0aacute\0auml\0"
+	"agrave\0aacute\0auml\0acirc\0aring\0"
 	"igrave\0iacute\0iuml\0"
 	"ograve\0oacute\0ouml\0"
 	"ugrave\0uacute\0uuml\0"
@@ -99,7 +99,7 @@ static const c8 g_LatEnt[] =
 
 static const u8 g_LatCode[] = {
 	0xE8, 0xE9, 0xEA, 0xEB,
-	0xE0, 0xE1, 0xE4,
+	0xE0, 0xE1, 0xE4, 0xE2, 0xE5,
 	0xEC, 0xED, 0xEF,
 	0xF2, 0xF3, 0xF6,
 	0xF9, 0xFA, 0xFC,
@@ -163,6 +163,8 @@ static void EmitCodepoint(u16 v)
 		EmitChar((u8)v);
 	else if ((v >= 0xC0) && (v <= 0xFF))
 		EmitGlyph((u8)v);
+	else if (v == 0x128) /* Ĩ — no glyph; ASCII base letter */
+		EmitChar('I');
 	else
 		EmitChar('?');
 }
@@ -390,6 +392,8 @@ static void ProcessEntity(void)
 		EmitChar('>');
 	else if (NameEq(g_Ent, "quot"))
 		EmitChar('"');
+	else if (NameEq(g_Ent, "Itilde"))
+		EmitChar('I'); /* U+0128 — outside Latin-1 font */
 	else
 	{
 		u8 lat = LookupLatin1Ent();
@@ -398,6 +402,44 @@ static void ProcessEntity(void)
 		else
 			EmitChar('?');
 	}
+}
+
+static bool EntContinues(u8 c)
+{
+	if (!g_EntN)
+	{
+		if (c == '#')
+			return TRUE;
+		if (((c >= 'A') && (c <= 'Z')) || ((c >= 'a') && (c <= 'z')))
+			return TRUE;
+		return FALSE;
+	}
+	if (g_Ent[0] == '#')
+	{
+		if (g_EntN == 1)
+		{
+			if ((c == 'x') || (c == 'X'))
+				return TRUE;
+			return (c >= '0') && (c <= '9');
+		}
+		if ((g_Ent[1] == 'x') || (g_Ent[1] == 'X'))
+			return HexVal((c8)c) != 0xFF;
+		return (c >= '0') && (c <= '9');
+	}
+	return ((c >= 'A') && (c <= 'Z'))
+		|| ((c >= 'a') && (c <= 'z'))
+		|| ((c >= '0') && (c <= '9'));
+}
+
+static void FlushAmbiguousEntity(void)
+{
+	u8 i;
+
+	EmitChar('&');
+	for (i = 0; i < g_EntN; ++i)
+		EmitChar((u8)g_Ent[i]);
+	g_Mode = 0;
+	g_EntN = 0;
 }
 
 static void Feed(u8 c)
@@ -410,6 +452,8 @@ static void Feed(u8 c)
 			EmitChar(c == 0xA0 ? ' ' : MapAscii(c));
 		else if (lead == 0xC3)
 			EmitGlyph(MapC3(c));
+		else if ((lead == 0xC4) && (c == 0xA8))
+			EmitChar('I'); /* U+0128 Ĩ */
 		else
 			EmitChar('?');
 		return;
@@ -435,13 +479,11 @@ static void Feed(u8 c)
 			g_EntN = 0;
 			return;
 		}
-		/* Bare "&" in page text (718 "Z O N  &  M A A N") is not an entity. */
-		if (!g_EntN && (c != '#')
-			&& !((c >= 'A') && (c <= 'Z'))
-			&& !((c >= 'a') && (c <= 'z')))
+		if (!EntContinues(c))
 		{
-			EmitChar('&');
-			g_Mode = 0;
+			/* Ambiguous ampersand: B&B/…, S&P, "Z O N  &  M A A N" */
+			FlushAmbiguousEntity();
+			/* fall through and process c */
 		}
 		else
 		{

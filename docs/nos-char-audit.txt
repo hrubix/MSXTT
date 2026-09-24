@@ -42,7 +42,7 @@
 207          OK
 206-2        OK
 205-3        OK
-208          UNSUPPORTED: named=acirc
+208          OK
 207-2        OK
 206-3        OK
 209          OK
@@ -104,7 +104,7 @@
 256-2        OK
 500          OK
 501          OK
-502          UNSUPPORTED: named=P
+502          OK
 503          OK
 502-2        OK
 520          OK
@@ -180,12 +180,12 @@
 572-8        OK
 625          OK
 619-2        OK
-626          UNSUPPORTED: named=B
+626          OK
 630          OK
-626-2        UNSUPPORTED: named=O
+626-2        OK
 632          OK
 630-2        OK
-626-3        UNSUPPORTED: named=L; named=O
+626-3        OK
 633          OK
 637          OK
 633-2        OK
@@ -193,10 +193,10 @@
 633-3        OK
 642          OK
 643          OK
-645          UNSUPPORTED: named=A
+645          OK
 643-2        OK
 647          OK
-645-2        UNSUPPORTED: named=Darts
+645-2        OK
 648          OK
 649          OK
 648-2        OK
@@ -206,10 +206,10 @@
 652          OK
 654          OK
 656          OK
-662          UNSUPPORTED: named=L; named=PC
-656-2        UNSUPPORTED: U+0128; named=Itilde
+662          OK
+656-2        OK
 668          OK
-662-2        UNSUPPORTED: named=L
+662-2        OK
 669          OK
 668-2        OK
 670          OK
@@ -250,10 +250,9 @@
 707-6        OK
 720          OK
 711-4        OK
-707-7        OK
+707-9        OK
 721          OK
 720-2        OK
-707-9        OK
 723          OK
 721-2        OK
 720-3        OK
@@ -282,7 +281,6 @@
 738-2        OK
 732-3        OK
 731-4        OK
-730-5        OK
 721-8        OK
 720-9        OK
 751          OK
@@ -290,14 +288,12 @@
 738-3        OK
 732-4        OK
 731-5        OK
-730-6        OK
 721-9        OK
 720-10       OK
 756          OK
 751-2        OK
 739-3        OK
 731-6        OK
-730-7        OK
 721-10       OK
 720-11       OK
 757          OK
@@ -305,28 +301,24 @@
 751-3        OK
 739-4        OK
 731-7        OK
-730-8        OK
 721-11       OK
 720-12       OK
 758          OK
 756-3        OK
 751-4        OK
 731-8        OK
-730-9        OK
 721-12       OK
 759          OK
 758-2        OK
 756-4        OK
 751-5        OK
 731-9        OK
-730-10       OK
 721-13       OK
 760          OK
 759-2        OK
 758-3        OK
 756-5        OK
 731-10       OK
-730-11       OK
 721-14       OK
 761          OK
 759-3        OK
@@ -407,7 +399,6 @@
 758-13       OK
 721-24       OK
 806          OK
-777-7        OK
 761-11       OK
 759-13       OK
 758-14       OK
@@ -416,24 +407,18 @@
 806-2        OK
 761-12       OK
 759-14       OK
-758-15       OK
 721-26       OK
 808          OK
 807-2        OK
 761-13       OK
-758-16       OK
 721-27       OK
 809          OK
-761-14       OK
 721-28       OK
 810          OK
-761-15       OK
 721-29       OK
 812          OK
-761-16       OK
 721-30       OK
 813          OK
-761-17       OK
 721-31       OK
 814          OK
 721-32       OK
@@ -485,7 +470,7 @@
 848          OK
 845-4        OK
 849          OK
-850          UNSUPPORTED: named=aring
+850          OK
 894          OK
 895          OK
 894-2        OK
@@ -511,21 +496,10 @@
 898-8        OK
 
 === SUMMARY ===
-pages checked: 507
-OK:           496
-UNSUPPORTED:  11
+pages checked: 492
+OK:           492
+UNSUPPORTED:  0
 404:          0
 ERROR:        0
 
-=== UNSUPPORTED ITEMS (sample pages) ===
-  U+0128: 656-2
-  named=A: 645
-  named=B: 626
-  named=Darts: 645-2
-  named=Itilde: 656-2
-  named=L: 626-3, 662, 662-2
-  named=O: 626-2, 626-3
-  named=P: 502
-  named=PC: 662
-  named=acirc: 208
-  named=aring: 850
+No unsupported characters found on live pages.
