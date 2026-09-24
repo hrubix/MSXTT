@@ -2,11 +2,13 @@
 
 MSXTT is a live NOS Teletekst viewer for MSX1 and MSX2 computers, bringing the classic Dutch Teletekst experience to your loved MSX computer. MSXTT is a combined NOS Teletekst viewer for MSX, detecting the machine at boot: **MSX1 → SCREEN 2**, anything else (MSX2, MSX2+, turbo R) → **SCREEN 5**.
 
-| Binary | Use |
-| ------ | --- |
-| `MSXTT.COM` | Emulator / Nextor DSK: HTTP via `TT.CFG` proxy + `UNAPI.COM` |
+
+| Binary        | Use                                                                                              |
+| ------------- | ------------------------------------------------------------------------------------------------ |
+| `MSXTT.COM`   | Emulator / Nextor DSK: HTTP via `TT.CFG` proxy + `UNAPI.COM`                                     |
 | `MSXTTPP.COM` | Real MSX + Pico+: HTTPS to `teletekst-data.nos.nl` (cart UNAPI TLS). No `TT.CFG`, no `UNAPI.COM` |
-| `MSXTT.ROM` | Page-2 cart: same HTTPS path as TTPP |
+| `MSXTT.ROM`   | Page-2 cart: same HTTPS path as TTPP ******DOES NOT WORK YET**                                  |
+
 
 Version **0.9.227 beta**. Made by [rubikonlab.com](https://rubikonlab.com).
 
@@ -56,7 +58,7 @@ MSX cells are **6×8** so 40 columns fit 240 px and 25 rows fit Screen 5 (200 px
 build.bat
 ```
 
-Writes `build/MSXTT.COM`, `build/MSXTT.DSK`, `emul/dos2/msxtt.com`, and `emul/dsk/MSXTT.DSK` (`AUTOEXEC.BAT`, `UNAPI.COM`, `MSXTT.COM`, `TT.CFG` → local proxy `127.0.0.1:8080`). Refresh is 20 seconds (not configurable). Host proxy: `tools/run-tt-proxy.bat` (Windows Python on `127.0.0.1:8080` so openMSX can connect; use `--wsl` only if you need a WSL listener).
+Writes `build/MSXTT.COM`, `build/MSXTT.DSK`, `emul/dos2/msxtt.com`, and `emul/dsk/MSXTT.DSK` (`AUTOEXEC.BAT`, `UNAPI.COM`, `MSXTT.COM`, `TT.CFG` → local proxy `127.0.0.1:8080`). Refresh is 20 seconds (not configurable). Host proxy: `tools/run-tt-proxy.bat` (Windows Python on `127.0.0.1:8080` so openMSX can connect; use `--wsl` only if you need a WSL listener). Local overrides in `tools/tt-pages/` (page **899** decoder test + subpages); other pages still proxy to NOS. Character audit: `python tools/check-nos-chars.py --out docs/nos-char-audit.txt`.
 
 ```
 build-msxttpp.bat

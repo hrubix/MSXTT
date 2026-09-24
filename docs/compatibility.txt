@@ -1,0 +1,283 @@
+NOS Teletekst is essentially using the **European World System Teletext standard — CCIR/ITU Teletext System B**. The later formal European specification is **ETSI ETS 300 706**. That standard defines the familiar **40 columns × 24 rows**, eight basic colours, text/control codes, mosaic graphics, page/subpage numbering, and the Level 1/1.5-style presentation associated with classic teletext. ([ETSI][1])
+
+For NOS specifically, the visible format is still deliberately the classic one. Current NOS pages, for example page 100, retain that fixed 40-character-wide teletext layout and block/mosaic graphics. ([NOS][2])
+
+There is one important distinction: **the production system underneath changed in November 2023**. NOS retired its old **Cyclone** editing/production system and replaced it with a newly built system. NOS says the goal was to preserve Teletekst as users know it; the underlying software changed, not the basic Teletekst product. ([Over NOS][3])
+
+So roughly:
+
+**NOS Teletekst page format**
+→ World System Teletext
+→ **System B**
+→ broadly **ETS 300 706 / Level 1-compatible presentation**
+→ **40 × 24 character cells**
+
+**NOS internal production software**
+→ formerly **Cyclone**
+→ replaced by a new NOS system in **2023**
+
+If you're trying to **recreate NOS Teletekst pixel-for-pixel**, I can explain exactly which parts of ETS 300 706 you need: character ROM, 6×10/12×20 cell geometry, control codes, double-height rules, mosaics, page headers, and the Dutch character set.
+
+[1]: https://www.etsi.org/deliver/etsi_i_ets/300700_300799/300706/01_60/ets_300706e01p.pdf?utm_source=chatgpt.com "ETS 300 706 - Enhanced Teletext specification"
+[2]: https://nos.nl/teletekst?utm_source=chatgpt.com "NOS.nl - NOS Teletekst"
+[3]: https://over.nos.nl/nieuws/teletekst-kan-weer-jaren-vooruit-met-nieuw-systeem/?utm_source=chatgpt.com "Teletekst kan weer jaren vooruit met nieuw systeem - Over NOS"
+
+
+For an authentic **NOS Teletekst renderer**, I would implement **Teletext Level 1 first**, then add only the Level 1.5 character extensions you actually need. The current NOS pages still visibly follow that basic model: fixed-width 40-character rows, classic block mosaics, and the traditional header/page layout. ([NOS][1])
+
+### 1. Screen geometry
+
+Internally, use a **40 × 25 cell grid**:
+
+| Row    | Purpose                      |
+| ------ | ---------------------------- |
+| `0`    | page/header row              |
+| `1–23` | normal page contents         |
+| `24`   | optional navigation/FLOF row |
+
+ETSI describes up to 24 page rows plus an optional 25th navigation row. Rows 1–24 contain 40 character positions; row 0 is special because its first eight transmitted bytes contain page/control information rather than visible characters. ([ETSI][2])
+
+That means a practical renderer should simply maintain:
+
+```text
+40 columns
+25 displayed rows
+cell[0..24][0..39]
+```
+
+NOS's page 100 follows exactly this sort of fixed grid. ([NOS][1])
+
+### 2. Don't use a normal monospace font
+
+This is probably the most important detail.
+
+ETS 300 706 says the **precise appearance of the characters is a decoder option**. Its reference characters are drawn on a **12 × 10 pixel matrix**, but that drawing is not a mandatory pixel-perfect font. ([ETSI][2])
+
+Classic hardware such as the Philips/Mullard **SAA5050** used a lower-level **6 dots × 10 TV-line cell**, with alphanumeric glyphs based on a **5 × 9 matrix** and special rounding of diagonals. ([CPCWiki][3])
+
+So there are two different concepts:
+
+```text
+Teletext standard
+    character semantics + reference appearance
+
+Actual decoder
+    its own character-generator ROM
+```
+
+This is why Arial/Consolas/monospace never quite looks like Teletekst.
+
+For an old-TV appearance, emulate an SAA5050-style character generator. A common digital representation doubles that to roughly:
+
+```text
+12 × 20 pixels / character
+40 × 25 cells
+
+= 480 × 500 teletext raster
+```
+
+But don't treat `480×500` as the actual PAL video resolution; it's a convenient decoded teletext pixel grid.
+
+### 3. Character sets
+
+You need at minimum **G0 + G1**.
+
+**G0** is the alphanumeric character set. ETSI defines 95 characters plus space and provides the Latin reference glyphs. 
+
+**G1** is the block-mosaic set used heavily by NOS for logos, bars, boxes, icons and headings. It contains six individually selectable blocks arranged:
+
+```text
+┌─────┬─────┐
+│  1  │  2  │
+├─────┼─────┤
+│  3  │  4  │
+├─────┼─────┤
+│  5  │  6  │
+└─────┴─────┘
+```
+
+There are **63 block combinations plus space**, and the blocks can be either **contiguous** or **separated**. 
+
+The large pseudo-graphic NOS logo you see at the top of page 100 is made from these kinds of mosaic characters rather than being a bitmap image. ([NOS][1])
+
+### 4. Colours
+
+Level 1 uses the traditional fixed eight-colour palette:
+
+```text
+0 black      #000000
+1 red        #FF0000
+2 green      #00FF00
+3 yellow     #FFFF00
+4 blue       #0000FF
+5 magenta    #FF00FF
+6 cyan       #00FFFF
+7 white      #FFFFFF
+```
+
+For a clean digital NOS recreation, those full-intensity RGB values are appropriate.
+
+The display state always has a foreground and background colour.
+
+### 5. The unusual part: control codes occupy cells
+
+This is what makes a proper Teletext renderer different from rendering styled text.
+
+Codes `0x00–0x1F` are **spacing attributes**. They consume an actual character position. Normally that position displays as a blank cell. ETSI explicitly specifies this behavior. ([ETSI][2])
+
+The important codes are:
+
+|    Code | Meaning                                               |
+| ------: | ----------------------------------------------------- |
+| `00–07` | alpha black/red/green/yellow/blue/magenta/cyan/white  |
+|    `08` | flash                                                 |
+|    `09` | steady                                                |
+|    `0C` | normal size                                           |
+|    `0D` | double height                                         |
+|    `0E` | double width                                          |
+|    `0F` | double size                                           |
+| `10–17` | mosaic black/red/green/yellow/blue/magenta/cyan/white |
+|    `18` | conceal                                               |
+|    `19` | contiguous mosaics                                    |
+|    `1A` | separated mosaics                                     |
+|    `1B` | character-set switch / ESC                            |
+|    `1C` | black background                                      |
+|    `1D` | new background                                        |
+|    `1E` | hold mosaics                                          |
+|    `1F` | release mosaics                                       |
+
+These aren't HTML-style attributes attached to a character. They exist **inside the 40-character row itself**. ([ETSI][2])
+
+That detail is essential to getting NOS spacing correct.
+
+### 6. `Set-At` versus `Set-After`
+
+Some attributes affect the cell containing the code; others only take effect on the next character position.
+
+For example, the colour codes are generally **Set-After**. So:
+
+```text
+A B [RED] C D E
+```
+
+conceptually renders something like:
+
+```text
+A B _ C D E
+      └─ control code occupies this cell
+          C starts red
+```
+
+Other controls such as contiguous/separated graphics are **Set-At**.
+
+You need to implement those semantics rather than simply parsing a row into styled spans. ETSI explicitly distinguishes the two behaviours. ([ETSI][2])
+
+### 7. Every row is a small state machine
+
+At the beginning of each row, reset the decoder state roughly to:
+
+```text
+character set = G0 alpha
+foreground    = white
+background    = black
+size          = normal
+flash         = steady
+mosaic style  = contiguous
+held mosaic   = none
+```
+
+Then scan the 40 positions **left to right**.
+
+Conceptually:
+
+```text
+for row in rows:
+    reset_state()
+
+    for column in 0..39:
+        code = page[row][column]
+
+        if code < 0x20:
+            process_attribute(code)
+            draw_attribute_cell()
+        else:
+            draw_character(code, current_state)
+```
+
+That's the core of a Level-1 decoder.
+
+### 8. Double-height is stranger than CSS scaling
+
+`0x0D` doesn't merely make one glyph taller.
+
+The character uses the current row as its **upper half**, and its lower half extends into the following row. The normal Level-1 contents underneath those positions are suppressed. ([ETSI][2])
+
+So your framebuffer logic should understand:
+
+```text
+row N     → top half
+row N + 1 → bottom half
+```
+
+rather than doing:
+
+```css
+transform: scaleY(2)
+```
+
+This matters on headline pages.
+
+### 9. Hold mosaics matters for NOS-style graphics
+
+`HOLD MOSAICS` lets a mosaic graphic continue through cells that contain control codes.
+
+Without it, changing colour would introduce ugly one-cell gaps into block graphics.
+
+The decoder remembers the most recent suitable G1 mosaic character and can display it where an attribute would otherwise produce a blank. ETSI defines this mechanism explicitly. ([ETSI][2])
+
+A correct implementation of hold/release graphics is one of the things that makes complicated Teletekst headers suddenly render correctly.
+
+### 10. Dutch characters
+
+There isn't a simple "`Dutch G0`" entry in the Latin national-option table. ETSI instead defines Latin national subsets plus the supplementary **G2 set**, and Level 1.5 provides mechanisms for additional characters needed by particular languages. 
+
+For an NOS-compatible modern implementation, I'd therefore support:
+
+```text
+Latin G0
+G1 mosaics
+Latin G2
+Level 1.5 diacritics / X/26
+```
+
+That covers things like accented names much more safely than assuming ASCII.
+
+### What I'd actually build
+
+For an NOS clone, the renderer architecture I'd use is:
+
+```text
+raw Teletext codes
+        ↓
+40 × 25 byte/cell page
+        ↓
+Level-1 state-machine decoder
+        ↓
+G0 character ROM / G1 mosaic generator
+        ↓
+12 × 20 output cell
+        ↓
+480 × 500 logical framebuffer
+        ↓
+nearest-neighbour scale to screen
+```
+
+Do **not** anti-alias the glyphs. Do **not** use proportional text. Do **not** substitute SVG lines for mosaics. Render discrete pixels and scale them with nearest-neighbour interpolation.
+
+One caveat: **ETS 300 706 alone cannot give you a literally pixel-for-pixel NOS font**, because the standard explicitly leaves the exact alphanumeric glyph appearance to the decoder. ([ETSI][2]) To reproduce a specific historical TV look, use an SAA5050/SAA52xx-style ROM. To reproduce **today's NOS website/app look**, you would instead want to identify the exact renderer/font NOS currently uses.
+
+If your goal is coding this, I can next give you the **actual 40×25 data structure and JavaScript/TypeScript Level-1 decoder algorithm**, including the G1 sixel bit mapping and `hold mosaics` state machine.
+
+[1]: https://nos.nl/teletekst?utm_source=chatgpt.com "NOS.nl - NOS Teletekst"
+[2]: https://www.etsi.org/deliver/etsi_i_ets/300700_300799/300706/01_60/ets_300706e01p.pdf "ETS 300 706 - Enhanced Teletext specification"
+[3]: https://www.cpcwiki.eu/imgs/9/9e/Mullard_SAA5050_datasheet.pdf?utm_source=chatgpt.com "SAA5050 SERIESTELETEXT CHARACTER GENERATORThe SAA5050 series of MOS N-channel integrated circuits provides the video drive signals to the"
