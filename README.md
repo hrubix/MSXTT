@@ -1,13 +1,12 @@
-# MSXTT
+# MSXTT - beta
 
 MSXTT is a live NOS Teletekst viewer for MSX1 and MSX2 computers, bringing the classic Dutch Teletekst experience to your loved MSX computer. MSXTT is a combined NOS Teletekst viewer for MSX, detecting the machine at boot: **MSX1 → SCREEN 2**, anything else (MSX2, MSX2+, turbo R) → **SCREEN 5**.
 
 
-| Binary        | Use                                                                                              |
-| ------------- | ------------------------------------------------------------------------------------------------ |
-| `MSXTT.COM`   | Emulator / Nextor DSK: HTTP via `TT.CFG` proxy + `UNAPI.COM`                                     |
-| `MSXTTPP.COM` | Real MSX + Pico+: HTTPS to `teletekst-data.nos.nl` (cart UNAPI TLS). No `TT.CFG`, no `UNAPI.COM` |
-| `MSXTT.ROM`   | Page-2 cart: same HTTPS path as TTPP ******DOES NOT WORK YET**                                  |
+| Binary        | Use                                                                  |
+| ------------- | -------------------------------------------------------------------- |
+| `MSXTTPP.COM` | Real MSX + Pico+: HTTPS to `teletekst-data.nos.nl` (cart UNAPI TLS). |
+| `MSXTT.ROM`   | t.b.d.                                                               |
 
 
 Version **0.9.227 beta**. Made by [rubikonlab.com](https://rubikonlab.com).

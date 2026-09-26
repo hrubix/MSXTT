@@ -1,48 +1,16 @@
-# Build output (MSXgl)
-out/
-emul/
-build/*
-!build/.gitkeep
-*.rom
-*.bin
-*.com
-!disk/*.COM
-*.ihx
-*.lk
-*.map
-*.mem
-*.noi
-*.rel
-*.sym
-*.lst
-*.asm.bak
+# Ignore everything by default
+*
 
-generated/*
-!generated/.gitkeep
+# Keep this file
+!.gitignore
 
-screenshots/*
-!screenshots/.gitkeep
-replays/*
-!replays/.gitkeep
+# Keep README
+!README.md
 
-# Local MSXgl copy and emulator (not source)
-/MSXgl/
-tools/openmsxnet/
-tools/openmsxnet.zip
-tools/roms/
-tools/dos2/
+# Keep screenshots
+!screenshots/
+!screenshots/**
 
-.vs/
-.vscode/*.log
-*.user
-Thumbs.db
-Desktop.ini
-.DS_Store
-
-node_modules/
-npm-debug.log*
-__pycache__/
-
-.env
-.env.local
-.cursor/mcp.json
+# Keep photo
+!photo/
+!photo/**
