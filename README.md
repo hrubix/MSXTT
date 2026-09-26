@@ -51,22 +51,5 @@ Official teletext glyphs are **SAA5050** 5×9 (Mullard/Philips). Bitmap source: 
 
 MSX cells are **6×8** so 40 columns fit 240 px and 25 rows fit Screen 5 (200 px plus margin). The baked font in `src/tt/tt_font.h` takes the 5 ink bits into bits 7–3, leaves bit 2 as a gutter, and **drops SAA5050 row 8**. Descenders (`g p q y`) lose that row, so those four letters come from MSXgl’s 6×8 sample; `j` is a small custom bitmap. Latin-1 accents use Teletext50 G2 packed the same way.
 
-## Build
 
-```
-build.bat
-```
 
-Writes `build/MSXTT.COM`, `build/MSXTT.DSK`, `emul/dos2/msxtt.com`, and `emul/dsk/MSXTT.DSK` (`AUTOEXEC.BAT`, `UNAPI.COM`, `MSXTT.COM`, `TT.CFG` → local proxy `127.0.0.1:8080`). Refresh is 20 seconds (not configurable). Host proxy: `tools/run-tt-proxy.bat` (Windows Python on `127.0.0.1:8080` so openMSX can connect; use `--wsl` only if you need a WSL listener). Local overrides in `tools/tt-pages/` (page **899** decoder test + subpages); other pages still proxy to NOS. Character audit: `python tools/check-nos-chars.py --out docs/nos-char-audit.txt`.
-
-```
-build-msxttpp.bat
-```
-
-Writes `build/MSXTTPP.COM` only (Pico+ TLS; copy to your Nextor disk yourself). Do not run `UNAPI.COM` with it — WiFi/UNAPI is on the cart.
-
-```
-build-msxtt-rom.bat
-```
-
-Writes `build/MSXTT.ROM` and `emul/rom/MSXTT.ROM` (16 KB page-2 cart, direct HTTPS to NOS). Run: `run-msxtt-rom.bat`.
