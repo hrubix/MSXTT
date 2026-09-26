@@ -14,3 +14,8 @@
 # Keep photo
 !photo/
 !photo/**
+
+# Keep Pico+ binary
+!emul/
+!emul/dos2/
+!emul/dos2/msxttpp.com
