@@ -1,0 +1,22 @@
+# Ignore everything by default
+*
+
+# Keep this file
+!.gitignore
+
+# Keep README
+!README.md
+
+# Keep photo
+!photo/
+!photo/**
+
+# Keep Pico+ binary
+!emul/
+!emul/dos2/
+!emul/dos2/msxttpp.com
+
+# Keep v1.0 release ROM
+!build/
+!build/1.0/
+!build/1.0/msxtt.rom
