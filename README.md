@@ -1,13 +1,13 @@
 # MSXTT
 
-MSXTT is a live NOS Teletekst viewer for MSX1 and MSX2 computers, bringing the classic Dutch Teletekst experience to your loved MSX computer. MSXTT is a combined NOS Teletekst viewer for MSX, detecting the machine at boot: **MSX1 → SCREEN 2**, anything else (MSX2, MSX2+, turbo R) → **SCREEN 5**.
+MSXTT is a live NOS Teletekst viewer for MSX1 and MSX2 computers, bringing the classic Dutch Teletekst experience to your loved MSX computer. MSX1 starts in **SCREEN 2**. MSX2, MSX2+ and turbo R ask on the splash: **2** selects SCREEN 2, **5** or Enter selects SCREEN 5.
 
 | Binary        | Use                                                                                             |
 | ------------- | ----------------------------------------------------------------------------------------------- |
 | `MSXTTPP.COM` | Real MSX + Pico+: HTTPS to `teletekst-data.nos.nl` (requires Nextor + UNAPI v1.1 TLS support). |
 | `MSXTT.ROM`   | ROM version (16 KB)                                                                             |
 
-Version **1.0.000**. Made by [rubikonlab.com](https://rubikonlab.com).
+Version **1.0.012**. Made by [rubikonlab.com](https://rubikonlab.com).
 
 ## Keys
 
@@ -22,7 +22,7 @@ Version **1.0.000**. Made by [rubikonlab.com](https://rubikonlab.com).
 
 ## MSX1 vs MSX2
 
-1. **Screen.** MSX1 uses SCREEN 2 (TMS9918, 256×192). MSX2 uses SCREEN 5 (V9938, 256×212). Both use the same 6×8 cell and 40 columns.
+1. **Screen.** MSX1 uses SCREEN 2 (TMS9918, 256×192). MSX2, MSX2+ and turbo R can use SCREEN 5 (V9938, 256×212) or SCREEN 2, chosen on the splash. Both use the same 6×8 cell and 40 columns.
 2. **Rows.** Screen 5 shows 40×25. Screen 2 only has 24 rows, so the last (fastext) row is not drawn. `F1`–`F4` still follow the fastext links.
 3. **Colours.** NOS / World System Teletext uses 8 inks (0–7). MSX2 loads them as VDP RGB. MSX1 cannot change the TMS9918 palette; maps each NOS ink to a fixed TMS index.
 
